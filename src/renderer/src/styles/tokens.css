@@ -1,0 +1,54 @@
+/* HARDWARE LAB — design tokens. Toute couleur ou durée de l'interface provient d'ici. */
+:root {
+  /* Surfaces */
+  --hl-bg: #0b0f14;
+  --hl-bg-deep: #06090d;
+  --hl-panel: #12171e;
+  --hl-panel-raised: #171d26;
+  --hl-panel-hover: #1b2330;
+  --hl-line: rgba(160, 190, 220, 0.1);
+  --hl-line-strong: rgba(160, 190, 220, 0.2);
+
+  /* Accents (tirés du logo officiel) */
+  --hl-cyan: #19c8ff;
+  --hl-cyan-soft: rgba(25, 200, 255, 0.14);
+  --hl-cyan-glow: rgba(25, 200, 255, 0.45);
+  --hl-blue: #2f7cf6;
+  --hl-steel: #c3cdd8;
+
+  /* Texte */
+  --hl-text: #eef1f4;
+  --hl-text-muted: #9aa6b4;
+  --hl-text-faint: #5f6b79;
+
+  /* États */
+  --hl-success: #3ccf8e;
+  --hl-warning: #f5a524;
+  --hl-danger: #f2555a;
+
+  /* Typographie */
+  --hl-font-ui: 'Inter Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --hl-font-display: 'Michroma', 'Inter Variable', 'Segoe UI', sans-serif;
+  --hl-font-mono: 'JetBrains Mono Variable', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+
+  /* Rythme */
+  --hl-space-1: 4px;
+  --hl-space-2: 8px;
+  --hl-space-3: 12px;
+  --hl-space-4: 16px;
+  --hl-space-5: 24px;
+  --hl-space-6: 32px;
+  --hl-space-7: 48px;
+  --hl-radius-sm: 4px;
+  --hl-radius: 8px;
+  --hl-titlebar-height: 36px;
+
+  /* Mouvement */
+  --hl-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --hl-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --hl-duration-fast: 140ms;
+  --hl-duration: 260ms;
+  --hl-duration-page: 420ms;
+
+  --hl-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px rgba(0, 0, 0, 0.35);
+}

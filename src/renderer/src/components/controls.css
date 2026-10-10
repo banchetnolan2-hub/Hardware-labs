@@ -1,0 +1,104 @@
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--hl-bg-deep);
+  border: 1px solid var(--hl-line);
+  border-radius: var(--hl-radius-sm);
+}
+.segmented button {
+  min-width: 96px;
+  height: 30px;
+  padding: 0 var(--hl-space-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--hl-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background var(--hl-duration-fast),
+    color var(--hl-duration-fast),
+    border-color var(--hl-duration-fast);
+}
+.segmented button:hover {
+  color: var(--hl-text);
+}
+.segmented button.is-active {
+  background: var(--hl-cyan-soft);
+  border-color: rgba(25, 200, 255, 0.45);
+  color: var(--hl-text);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hl-space-3);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--hl-text-muted);
+  font-size: 13px;
+}
+.toggle__label {
+  min-width: 70px;
+  text-align: right;
+}
+.toggle__track {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--hl-bg-deep);
+  border: 1px solid var(--hl-line-strong);
+  transition:
+    background var(--hl-duration),
+    border-color var(--hl-duration);
+}
+.toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--hl-text-muted);
+  transition:
+    transform var(--hl-duration) var(--hl-ease-out),
+    background var(--hl-duration);
+}
+.toggle.is-on {
+  color: var(--hl-text);
+}
+.toggle.is-on .toggle__track {
+  background: var(--hl-cyan-soft);
+  border-color: var(--hl-cyan);
+}
+.toggle.is-on .toggle__thumb {
+  transform: translateX(20px);
+  background: var(--hl-cyan);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hl-space-6);
+  padding: var(--hl-space-4) 0;
+  border-top: 1px solid var(--hl-line);
+}
+.setting-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.setting-row__label {
+  font-size: 14px;
+}
+.setting-row__hint {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--hl-text-faint);
+}
+.setting-row__control {
+  flex-shrink: 0;
+}

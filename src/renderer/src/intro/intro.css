@@ -1,0 +1,465 @@
+/* HARDWARE LAB — introduction Motion Design.
+ * Uniquement transform / opacity / stroke-dashoffset (+ un clip-path sur le logo) :
+ * aucune ombre ni flou animé, pour rester fluide sur des machines modestes. */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  background: var(--hl-bg);
+  cursor: default;
+}
+.intro.is-leaving {
+  animation: intro-out var(--t-exit) var(--hl-ease-in-out) forwards;
+  pointer-events: none;
+}
+@keyframes intro-out {
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+/* ---------- Étape A : initialisation ---------- */
+
+.intro__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(120, 175, 225, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 175, 225, 0.055) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 30%, transparent 100%);
+  opacity: 0;
+  animation: fade-in 900ms ease-out var(--t-grid) forwards;
+}
+/* Ligne de balayage unique pendant l'initialisation. */
+.intro__grid::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(25, 200, 255, 0.5), transparent);
+  opacity: 0;
+  animation: scan 1500ms var(--hl-ease-in-out) calc(var(--t-grid) + 150ms) forwards;
+}
+@keyframes scan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+.intro__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+.intro__corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 0 solid rgba(25, 200, 255, 0.45);
+  opacity: 0;
+  animation: corner-in 600ms var(--hl-ease-out) var(--t-hud) forwards;
+}
+.intro__corner--tl {
+  top: 56px;
+  left: 32px;
+  border-top-width: 1px;
+  border-left-width: 1px;
+  transform-origin: top left;
+}
+.intro__corner--tr {
+  top: 56px;
+  right: 32px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  transform-origin: top right;
+}
+.intro__corner--bl {
+  bottom: 32px;
+  left: 32px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  transform-origin: bottom left;
+}
+.intro__corner--br {
+  bottom: 32px;
+  right: 32px;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+  transform-origin: bottom right;
+}
+@keyframes corner-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.intro__label {
+  position: absolute;
+  top: 66px;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--hl-text-faint);
+  clip-path: inset(0 100% 0 0);
+  animation: reveal-x 700ms var(--hl-ease-out) calc(var(--t-hud) + 200ms) forwards;
+}
+.intro__label--tl {
+  left: 70px;
+}
+.intro__label--tr {
+  right: 70px;
+}
+@keyframes reveal-x {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.intro__checks {
+  position: absolute;
+  left: 70px;
+  bottom: 62px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--hl-text-faint);
+}
+.intro__checks li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 230px;
+  line-height: 20px;
+  opacity: 0;
+  animation: fade-in 200ms linear calc(var(--t-checks) + var(--i) * 220ms) forwards;
+}
+.intro__check-dots {
+  flex: 1;
+  border-bottom: 1px dotted rgba(160, 190, 220, 0.18);
+}
+.intro__check-ok {
+  color: var(--hl-cyan);
+  opacity: 0;
+  animation: fade-in 120ms linear calc(var(--t-checks) + var(--i) * 220ms + 160ms) forwards;
+}
+
+/* ---------- Scène (repère 1920×1080 partagé par le SVG et le logo) ----------
+ * Pas de transform ni d'opacité ici : la scène ne doit pas créer de contexte d'empilement,
+ * sinon le mélange « lighten » du logo ne verrait plus le fond de .intro. */
+
+.intro__stage {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+}
+
+.intro__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ---------- Étape B : construction ---------- */
+
+.intro__ambient path {
+  fill: none;
+  stroke: rgba(25, 200, 255, 0.13);
+  stroke-width: 1;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw 1400ms var(--hl-ease-in-out) calc(var(--t-grid) + 200ms + var(--i) * 120ms) forwards;
+}
+
+.intro__trace {
+  fill: none;
+  stroke: var(--hl-cyan);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: 0.85;
+  animation:
+    draw 900ms var(--hl-ease-in-out) calc(var(--t-traces) + var(--i) * 90ms) forwards,
+    fade-out 600ms ease-in calc(var(--t-logo) + 350ms) forwards;
+}
+
+/* Impulsion lumineuse qui parcourt chaque tracé jusqu'au nœud du logo. */
+.intro__pulse {
+  fill: none;
+  stroke: #bff0ff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 6 200;
+  stroke-dashoffset: 6;
+  opacity: 0;
+  animation: pulse 700ms ease-in calc(var(--t-traces) + var(--i) * 90ms + 450ms) forwards;
+}
+@keyframes pulse {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 6;
+  }
+  15% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+.intro__node {
+  fill: var(--hl-bg);
+  stroke: var(--hl-cyan);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation:
+    node-on 420ms var(--hl-ease-out) calc(var(--t-traces) + var(--i) * 90ms + 1050ms) forwards,
+    fade-out 500ms ease-in calc(var(--t-logo) + 600ms) forwards;
+}
+@keyframes node-on {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+    fill: var(--hl-cyan);
+  }
+  50% {
+    opacity: 1;
+    fill: #bff0ff;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.intro__ring circle {
+  fill: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.intro__ring-main {
+  stroke: var(--hl-cyan);
+  stroke-width: 2;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transform: rotate(-90deg);
+  animation:
+    draw 900ms var(--hl-ease-in-out) var(--t-ring) forwards,
+    fade-out 500ms ease-in calc(var(--t-logo) + 300ms) forwards;
+}
+.intro__ring-ticks {
+  stroke: var(--hl-cyan);
+  stroke-width: 6;
+  stroke-dasharray: 0.25 1.75;
+  opacity: 0;
+  animation:
+    ticks-in 700ms ease-out var(--t-ring) forwards,
+    spin 9s linear var(--t-ring) infinite;
+}
+@keyframes ticks-in {
+  to {
+    opacity: 0.3;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.intro__core {
+  opacity: 0;
+  animation: core 1500ms ease-out calc(var(--t-logo) - 200ms) forwards;
+}
+@keyframes core {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+/* ---------- Étape C : apparition du logo ---------- */
+
+.intro__logo {
+  position: absolute;
+  height: auto;
+  /* Le fond du logo, plus sombre que la scène, disparaît ; ses lumières restent intactes. */
+  mix-blend-mode: lighten;
+  opacity: 0;
+  pointer-events: none;
+  animation: logo-in 1100ms var(--hl-ease-out) var(--t-logo) forwards;
+}
+@keyframes logo-in {
+  0% {
+    opacity: 0;
+    clip-path: circle(6% at 50% 34.7%);
+    transform: translateY(6px) scale(0.985);
+    filter: brightness(1.7) saturate(0.6);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    clip-path: circle(120% at 50% 34.7%);
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ---------- Étape D : signature ---------- */
+
+.intro__signature {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.intro__signature-text {
+  display: flex;
+  font-size: clamp(10px, 0.72vw, 14px);
+  letter-spacing: 0.5em;
+  color: var(--hl-text-muted);
+}
+.intro__signature-text span {
+  opacity: 0;
+  animation: char-in 260ms ease-out calc(var(--t-signature) + var(--i) * 28ms) forwards;
+}
+@keyframes char-in {
+  0% {
+    opacity: 0;
+    color: #bff0ff;
+  }
+  40% {
+    opacity: 1;
+    color: var(--hl-cyan);
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.intro__signature-line {
+  width: clamp(140px, 14vw, 260px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hl-cyan), transparent);
+  transform: scaleX(0);
+  animation: grow-x 700ms var(--hl-ease-out) var(--t-signature) forwards;
+}
+@keyframes grow-x {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------- Passer ---------- */
+
+.intro__skip {
+  position: absolute;
+  right: 70px;
+  bottom: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--hl-line);
+  border-radius: var(--hl-radius-sm);
+  color: var(--hl-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  animation: fade-in 400ms ease-out 400ms forwards;
+  transition:
+    border-color var(--hl-duration-fast),
+    color var(--hl-duration-fast);
+}
+.intro__skip:hover {
+  border-color: var(--hl-cyan);
+  color: var(--hl-text);
+}
+.intro__skip kbd {
+  font-family: var(--hl-font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--hl-line-strong);
+  border-radius: 3px;
+  color: var(--hl-text-faint);
+}
+
+/* ---------- Animations partagées ---------- */
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------- Réduction des animations : composition statique, sans mouvement ---------- */
+
+.intro--reduced .intro__ambient,
+.intro--reduced .intro__traces,
+.intro--reduced .intro__ring,
+.intro--reduced .intro__core,
+.intro--reduced .intro__checks,
+.intro--reduced .intro__grid::after {
+  display: none;
+}
+.intro--reduced .intro__logo {
+  animation: fade-in 1ms linear forwards;
+}

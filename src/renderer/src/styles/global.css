@@ -1,0 +1,183 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--hl-bg);
+  color: var(--hl-text);
+  font-family: var(--hl-font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--hl-cyan);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--hl-cyan-soft);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--hl-line-strong);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Réduction des animations : appliquée globalement depuis <html data-motion="reduced">. */
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+
+/* Barre de titre (contrôles natifs Windows superposés à droite). */
+.titlebar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--hl-titlebar-height);
+  display: flex;
+  align-items: center;
+  gap: var(--hl-space-3);
+  padding: 0 var(--hl-space-4);
+  -webkit-app-region: drag;
+  z-index: 100;
+  font-family: var(--hl-font-display);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: var(--hl-text-faint);
+}
+.titlebar img {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.app-shell {
+  position: relative;
+  height: 100%;
+}
+
+.page {
+  position: relative;
+  height: 100%;
+  /* Fond explicite : la page anime opacity/transform et forme donc un groupe isolé ;
+     les logos en mix-blend-mode doivent y trouver le fond anthracite. */
+  background: var(--hl-bg);
+  animation: page-in var(--hl-duration-page) var(--hl-ease-out) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Panneaux */
+.panel {
+  background: linear-gradient(180deg, var(--hl-panel-raised), var(--hl-panel));
+  border: 1px solid var(--hl-line);
+  border-radius: var(--hl-radius);
+  box-shadow: var(--hl-shadow);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--hl-space-2);
+  margin: 0 0 var(--hl-space-4);
+  font-family: var(--hl-font-display);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hl-text-muted);
+}
+.panel-title::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--hl-cyan);
+  box-shadow: 0 0 8px var(--hl-cyan-glow);
+}
+
+.mono {
+  font-family: var(--hl-font-mono);
+}
+
+/* Boutons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hl-space-2);
+  height: 34px;
+  padding: 0 var(--hl-space-4);
+  background: var(--hl-panel-raised);
+  border: 1px solid var(--hl-line-strong);
+  border-radius: var(--hl-radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  transition:
+    border-color var(--hl-duration-fast),
+    background var(--hl-duration-fast);
+}
+.btn:hover {
+  border-color: var(--hl-cyan);
+  background: var(--hl-panel-hover);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--hl-text-muted);
+}
+.btn-ghost:hover {
+  color: var(--hl-text);
+  background: transparent;
+  border-color: var(--hl-line-strong);
+}
+
+.titlebar > * ,
+.titlebar {
+  transition: color var(--hl-duration-page);
+}
+.titlebar:not(.is-visible) {
+  color: transparent;
+}
+.titlebar:not(.is-visible) img {
+  opacity: 0;
+}
+.titlebar img {
+  transition: opacity var(--hl-duration-page);
+}
