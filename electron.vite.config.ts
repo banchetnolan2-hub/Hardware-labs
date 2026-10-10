@@ -2,7 +2,11 @@ import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 
-const alias = { '@shared': resolve(__dirname, 'src/shared') }
+const alias = {
+  '@shared': resolve(__dirname, 'src/shared'),
+  '@simulation': resolve(__dirname, 'src/simulation'),
+  '@career': resolve(__dirname, 'src/career')
+}
 
 export default defineConfig({
   main: {
