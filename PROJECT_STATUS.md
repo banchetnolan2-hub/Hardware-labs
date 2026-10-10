@@ -77,7 +77,12 @@ _Dernière mise à jour : 10/10/2026 — version 0.1.0 — **Phase 1 terminée, 
   intro réduite passée avec Échap, aucune erreur console.
 - `npm run dev` : démarre, introduction affichée, aucune erreur console.
 
-Non testé : exécution sous Windows (aucune machine Windows dans l'environnement de développement actuel).
+- **Windows réel (GitHub Actions `windows-latest`, exécution 38041256868, 10/10/2026)** : tests unitaires, installateur,
+  installation silencieuse, raccourcis bureau et menu Démarrer, test de bout en bout **17/17 sur l'application installée**
+  (intro 4,46 s, plein écran, persistance, vraie recherche de mise à jour sur GitHub), désinstallation propre avec
+  données du joueur conservées, puis publication.
+- **Version publiée** : https://github.com/banchetnolan2-hub/Hardware-labs/releases/tag/v0.1.0
+  (`HARDWARE_LAB_Setup.exe`, `latest.yml`, `HARDWARE_LAB_Setup.exe.blockmap`).
 
 ## Problèmes et limites connus
 
