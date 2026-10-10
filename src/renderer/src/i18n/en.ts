@@ -1,6 +1,9 @@
 import type { Messages } from './fr'
 
+import { gameEn } from './game-en'
+
 export const en: Messages = {
+  game: gameEn,
   intro: {
     skip: 'Skip',
     skipKey: 'Esc',
@@ -25,8 +28,12 @@ export const en: Messages = {
     lab: {
       title: 'Lab',
       empty: 'No career in progress',
-      emptyHint: 'Career mode arrives in phase 3. Your workshop, budget and contracts will show up here.'
+      emptyHint: 'Start a new career: your first client is waiting with a gaming PC order.',
+      delivered: 'Orders delivered',
+      contractsWaiting: (count: number) => `${count} contract(s) waiting on the board.`
     },
+    noCareer: 'No career in progress',
+    newCareerConfirm: 'A career is already in progress. It will be archived (not deleted) and a new game will start. Continue?',
     roadmap: {
       title: 'Roadmap',
       done: 'Done',

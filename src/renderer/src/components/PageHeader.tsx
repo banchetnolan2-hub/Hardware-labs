@@ -5,10 +5,10 @@ import { useAppStore } from '../store/app-store'
 /** En-tête commun aux pages secondaires, avec retour au menu. */
 export function PageHeader({ title, aside }: { title: string; aside?: ReactNode }) {
   const t = useT()
-  const navigate = useAppStore((state) => state.navigate)
+  const back = useAppStore((state) => state.back)
   return (
     <header className="page-header">
-      <button type="button" className="btn btn-ghost" onClick={() => navigate('menu')}>
+      <button type="button" className="btn btn-ghost" onClick={back}>
         <span aria-hidden>←</span> {t.common.back}
         <kbd className="page-header__kbd">Esc</kbd>
       </button>

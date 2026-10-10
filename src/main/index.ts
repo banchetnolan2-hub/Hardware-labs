@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { registerIpc } from './ipc'
+import { CareerStore } from './storage/career-store'
 import { SettingsStore } from './storage/settings-store'
 import { Updater } from './updater'
 import { captureWindowState, createMainWindow } from './window'
@@ -31,7 +32,8 @@ if (!app.requestSingleInstanceLock()) {
   }
 
   const updater = new Updater(() => mainWindow, log)
-  registerIpc({ getWindow: () => mainWindow, settings, updater, onSettingsSaved: applyDisplaySettings })
+  const career = new CareerStore(app.getPath('userData'), log)
+  registerIpc({ getWindow: () => mainWindow, settings, updater, career, onSettingsSaved: applyDisplaySettings })
 
   // Le renderer ne doit jamais charger de contenu distant ni ouvrir de webview.
   app.on('web-contents-created', (_event, contents) => {

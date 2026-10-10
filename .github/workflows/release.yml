@@ -56,6 +56,9 @@ jobs:
       - name: Test de bout en bout sur l'application installée
         run: node scripts/smoke-test.mjs test-results/windows
 
+      - name: Partie complète sur l'application installée (mission, livraison, redémarrage)
+        run: node scripts/e2e-career.mjs test-results/windows-career
+
       - name: Désinstallation (les données du joueur doivent être conservées)
         shell: pwsh
         run: |
@@ -73,7 +76,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: captures-windows
-          path: test-results/windows
+          path: |
+            test-results/windows
+            test-results/windows-career
           if-no-files-found: ignore
 
       - name: Fichiers de distribution
@@ -96,3 +101,70 @@ jobs:
           gh release create "v$version" `
             release/HARDWARE_LAB_Setup.exe release/HARDWARE_LAB_Setup.exe.blockmap release/latest.yml `
             --title "HARDWARE LAB $version" --notes-file notes.md --target $env:GITHUB_SHA
+
+  # Mise à jour réelle depuis la version publiée précédente vers celle qui vient d'être publiée.
+  update-from-previous:
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Outils de test
+        run: npm install --no-save playwright-core@1
+
+      - name: Installation de la version précédente
+        shell: pwsh
+        run: |
+          $current = "v" + (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $previous = (gh release list --limit 10 --json tagName | ConvertFrom-Json).tagName | Where-Object { $_ -ne $current } | Select-Object -First 1
+          if (!$previous) { throw "Aucune version précédente publiée" }
+          Write-Output "Mise à jour testée : $previous -> $current"
+          gh release download $previous --pattern HARDWARE_LAB_Setup.exe --dir old
+          Start-Process -FilePath "old\HARDWARE_LAB_Setup.exe" -ArgumentList "/S" -Wait
+          $exe = Join-Path $env:LOCALAPPDATA "Programs\HARDWARE LAB\HARDWARE LAB.exe"
+          if (!(Test-Path $exe)) { throw "Ancienne version non installée" }
+          (Get-Item $exe).VersionInfo.ProductVersion
+          # Données du joueur à conserver pendant la mise à jour.
+          $data = Join-Path $env:APPDATA "HARDWARE LAB"
+          New-Item -ItemType Directory -Force (Join-Path $data "saves") | Out-Null
+          '{"sentinel":true}' | Set-Content (Join-Path $data "saves\sentinel.json")
+          "HARDWARE_LAB_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "EXPECTED_VERSION=" + $current.Substring(1) | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Recherche, téléchargement et installation de la mise à jour depuis le jeu
+        run: node scripts/update-test.mjs
+
+      - name: Vérification de la nouvelle version et des données
+        shell: pwsh
+        run: |
+          $exe = $env:HARDWARE_LAB_EXE
+          $deadline = (Get-Date).AddMinutes(4)
+          do {
+            Start-Sleep -Seconds 5
+            $version = if (Test-Path $exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { "" }
+            Write-Output "Version installée : $version"
+          } until ($version.StartsWith($env:EXPECTED_VERSION) -or (Get-Date) -gt $deadline)
+          if (!$version.StartsWith($env:EXPECTED_VERSION)) { throw "La mise à jour n'a pas été installée" }
+          $data = Join-Path $env:APPDATA "HARDWARE LAB"
+          if (!(Test-Path (Join-Path $data "saves\sentinel.json"))) { throw "Données du joueur perdues pendant la mise à jour" }
+          # La nouvelle version relancée migre les paramètres sans perdre le réglage modifié.
+          $settingsPath = Join-Path $data "settings.json"
+          $deadline = (Get-Date).AddMinutes(2)
+          do {
+            Start-Sleep -Seconds 3
+            $settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json } else { $null }
+          } until (($settings -and $settings.schemaVersion -ge 2) -or (Get-Date) -gt $deadline)
+          if (!$settings) { throw "Paramètres perdus pendant la mise à jour" }
+          $settings | ConvertTo-Json -Depth 5
+          if ($settings.display.rememberWindowBounds -ne $false) { throw "Le paramètre modifié n'a pas été conservé" }
+          if ($settings.schemaVersion -lt 2) { throw "La nouvelle version n'a pas migré les paramètres" }
+          Write-Output "Mise à jour installée, relancée, données conservées et migrées."
+          Get-Process "HARDWARE LAB" -ErrorAction SilentlyContinue | Stop-Process -Force

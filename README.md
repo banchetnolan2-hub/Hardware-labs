@@ -16,6 +16,7 @@ npm run typecheck    # vérification TypeScript
 npm test             # tests unitaires (Vitest)
 npm run build        # compilation dans out/
 npm run test:smoke   # test de bout en bout sur l'application compilée (sous Linux : xvfb-run -a)
+npm run test:e2e     # partie complète : mission, livraison, redémarrage (sous Linux : xvfb-run -a)
 npm run brand        # régénère les variantes du logo à partir de assets/brand/logo-original.webp
 ```
 
@@ -28,7 +29,9 @@ resources/           ressources embarquées dans l'application (icône de fenêt
 scripts/             génération des variantes du logo, test de bout en bout
 src/main/            processus principal Electron : fenêtre, IPC, stockage
 src/preload/         API sécurisée exposée à l'interface
-src/renderer/        interface React : introduction, pages, composants, styles, état
+src/renderer/        interface React : introduction, menu, écrans de jeu (src/game/), styles, état
+src/simulation/      catalogue des composants, compatibilité, simulation, banc de test
+src/career/          contrats, économie, progression, format de sauvegarde
 src/shared/          types, validation et données partagées
 ```
 

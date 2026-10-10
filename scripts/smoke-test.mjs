@@ -45,7 +45,7 @@ try {
     api: Object.keys(window.hardwareLab ?? {}).sort().join(',')
   }))
   check(security.require === 'undefined' && security.process === 'undefined', 'aucun accès Node dans le renderer')
-  check(security.api === 'checkForUpdates,downloadUpdate,getAppInfo,getSettings,getUpdateStatus,installUpdate,onUpdateStatus,openDataFolder,quit,saveSettings', `API preload limitée (${security.api})`)
+  check(security.api === 'archiveCareer,checkForUpdates,downloadUpdate,getAppInfo,getSettings,getUpdateStatus,installUpdate,loadCareer,onUpdateStatus,openDataFolder,quit,saveCareer,saveSettings', `API preload limitée (${security.api})`)
 
   // Durée réelle mesurée dans la page (indépendante de la lenteur des captures).
   const introMs = await page.evaluate(
@@ -102,7 +102,7 @@ try {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   check(version?.includes(pkg.version), `version affichée (${version?.trim()})`)
   const disabled = await page.$$eval('.menu-item:disabled', (els) => els.length)
-  check(disabled === 5, `entrées non encore développées désactivées (${disabled})`)
+  check(disabled === 3, `entrées indisponibles désactivées : bac à sable, configurations, continuer sans carrière (${disabled})`)
 
   // ---- Paramètres : désactiver l'introduction, passer en anglais ----
   await page.click('text=Paramètres')

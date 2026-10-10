@@ -1,12 +1,14 @@
 import { app, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
-import { IPC, type AppInfo, type SaveSettingsResult } from '@shared/ipc'
+import { IPC, type AppInfo, type SaveCareerResult, type SaveSettingsResult } from '@shared/ipc'
 import type { SettingsStore } from './storage/settings-store'
 import type { Updater } from './updater'
+import type { CareerStore } from './storage/career-store'
 
 type IpcContext = {
   getWindow: () => BrowserWindow | null
   settings: SettingsStore
   updater: Updater
+  career: CareerStore
   onSettingsSaved: () => void
 }
 
@@ -18,7 +20,7 @@ function isTrustedSender(event: IpcMainInvokeEvent, window: BrowserWindow | null
   return url.startsWith('file://') || (!!devUrl && url.startsWith(devUrl))
 }
 
-export function registerIpc({ getWindow, settings, updater, onSettingsSaved }: IpcContext): void {
+export function registerIpc({ getWindow, settings, updater, career, onSettingsSaved }: IpcContext): void {
   const handle = <T>(channel: string, handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => T) => {
     ipcMain.handle(channel, (event, ...args) => {
       if (!isTrustedSender(event, getWindow())) throw new Error('Expéditeur IPC non autorisé')
@@ -58,4 +60,15 @@ export function registerIpc({ getWindow, settings, updater, onSettingsSaved }: I
   handle(IPC.updaterCheck, () => updater.check())
   handle(IPC.updaterDownload, () => updater.download())
   handle(IPC.updaterInstall, () => updater.install())
+
+  handle(IPC.careerLoad, () => career.load())
+  handle(IPC.careerSave, async (_event, candidate): Promise<SaveCareerResult> => {
+    try {
+      await career.save(candidate)
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message.slice(0, 500) : String(error) }
+    }
+  })
+  handle(IPC.careerArchive, () => career.archive())
 }

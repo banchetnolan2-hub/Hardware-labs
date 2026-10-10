@@ -13,6 +13,9 @@ const api: HardwareLabApi = {
   checkForUpdates: () => ipcRenderer.invoke(IPC.updaterCheck),
   downloadUpdate: () => ipcRenderer.invoke(IPC.updaterDownload),
   installUpdate: () => ipcRenderer.invoke(IPC.updaterInstall),
+  loadCareer: () => ipcRenderer.invoke(IPC.careerLoad),
+  saveCareer: (career) => ipcRenderer.invoke(IPC.careerSave, career),
+  archiveCareer: () => ipcRenderer.invoke(IPC.careerArchive),
   onUpdateStatus: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus) => listener(status)
     ipcRenderer.on(IPC.updaterStatus, handler)

@@ -1,7 +1,7 @@
 {
   "name": "hardware-lab",
   "productName": "HARDWARE LAB",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "HARDWARE LAB — simulateur de laboratoire informatique",
   "author": "HARDWARE LAB",
   "license": "UNLICENSED",
@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:smoke": "node scripts/smoke-test.mjs",
+    "test:e2e": "node scripts/e2e-career.mjs",
     "brand": "python3 scripts/generate-brand-assets.py"
   },
   "dependencies": {

@@ -5,7 +5,7 @@ import type { ContractCategory, Service } from './schema'
 const t = (fr: string, en: string): LocalizedText => ({ fr, en })
 
 /** Expérience totale requise pour atteindre chaque niveau (index 0 = niveau 1). */
-export const LEVEL_XP = [0, 200, 550, 1100, 1900, 3000] as const
+export const LEVEL_XP = [0, 200, 550, 1100, 1900] as const
 export const MAX_LEVEL = LEVEL_XP.length
 
 export function levelFromXp(xp: number): number {

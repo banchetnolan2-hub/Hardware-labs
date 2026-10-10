@@ -321,3 +321,35 @@
 .link-button:hover {
   text-decoration: underline;
 }
+
+.lab-summary {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--hl-space-5);
+  align-items: center;
+}
+.lab-summary__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--hl-space-4);
+}
+.lab-summary__stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lab-summary__label {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hl-text-faint);
+}
+.lab-summary__value {
+  font-size: 20px;
+}
+.lab-summary__job {
+  grid-column: 2;
+  margin: 0;
+  color: var(--hl-text-muted);
+  font-size: 13.5px;
+}

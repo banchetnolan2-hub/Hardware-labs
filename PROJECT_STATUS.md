@@ -1,124 +1,146 @@
 # HARDWARE LAB — État du projet
 
-_Dernière mise à jour : 10/10/2026 — version 0.1.0 — **Phase 1 terminée, installateur et mises à jour mis en place (phase 5 avancée)**_
+_Dernière mise à jour : 10/10/2026 — version 0.2.0 — **Gameplay jouable : carrière, configurateur, banc de test**_
 
 ## Résumé
 
 | Phase | Contenu | État |
 | --- | --- | --- |
 | 1 | Identité et fondations (Electron/React/TS, intro Motion Design, menu, paramètres) | ✅ Terminée |
-| 2 | Configurateur, données composants, moteur de compatibilité | ⏭ Prochaine |
-| 3 | Carrière, contrats, inventaire, diagnostic, réparation | Prévue |
-| 4 | Bac à sable, comparaisons, sauvegardes de partie | Prévue |
-| 5 | Installateur `HARDWARE_LAB_Setup.exe`, publication, mises à jour automatiques | 🟡 Installateur et publication en place ; mise à jour réelle d'une version à l'autre à tester |
+| 2 | Composants, configurateur, compatibilité, simulation | ✅ Terminée |
+| 3 | Carrière, contrats, économie, diagnostic, réparation, progression | ✅ Terminée |
+| 4 | Bac à sable, configurations enregistrées, comparaisons | 🟡 Sauvegardes faites ; bac à sable à faire |
+| 5 | Installateur, publication, mises à jour automatiques | ✅ En place (mise à jour réelle testée en CI à chaque publication) |
 | 6 | Finition | Prévue |
 
-## Fonctionnalités terminées et vérifiées (Phase 1)
+## La boucle de jeu (0.2.0)
 
-- **Introduction Motion Design** (`src/renderer/src/intro/`) — ≈ 4,4 s mesurées :
-  - A : grille, repères d'angle, libellés techniques, ligne de balayage, auto-test CPU/MÉMOIRE/GPU/ALIMENTATION/STOCKAGE ;
-  - B : pistes de circuit tracées depuis les bords, impulsions lumineuses, anneau dessiné ;
-    les tracés aboutissent **exactement** sur les nœuds et l'anneau du logo officiel (`geometry.ts`) ;
-  - C : révélation circulaire du logo officiel depuis le centre de l'anneau ;
-  - D : signature `SYSTEM INITIALIZED` (modifiable dans `i18n/*.ts`, désactivable dans `timeline.ts`) ;
-  - E : fondu enchaîné vers le menu (le menu est monté sous l'intro, aucun écran blanc).
-  - Passer : bouton, Échap, Entrée, Espace ou clic. Désactivable dans les paramètres.
-  - Réduction des animations : composition statique (réglage du jeu ou du système).
-- **Menu principal** : 8 entrées ; Paramètres, Notes de mise à jour et Quitter fonctionnent.
-  Les 5 entrées dépendant des phases suivantes sont **désactivées** et marquées « À venir · Pn ».
-  Panneaux Laboratoire (état vide honnête), Feuille de route, Système (version installée).
-  Navigation clavier ↑/↓/Entrée.
-- **Paramètres** (persistés) : fenêtré / plein écran, mémorisation taille et position de la fenêtre,
-  introduction on/off, réduction des animations (Système / Réduites / Complètes), langue FR/EN,
-  version installée, ouverture du dossier de données.
-- **Stockage** : `settings.json` et `window-state.json` dans le dossier utilisateur
-  (`%APPDATA%\HARDWARE LAB` sous Windows). Écriture atomique, fichier corrompu mis de côté,
-  validation zod, champs invalides corrigés individuellement, migrations versionnées.
-- **Sécurité Electron** : `contextIsolation`, `sandbox`, `nodeIntegration: false`, CSP stricte,
-  5 canaux IPC listés, vérification de l'expéditeur IPC, validation stricte des paramètres reçus,
-  navigation et nouvelles fenêtres bloquées, instance unique.
-- **Identité visuelle** : design tokens (`styles/tokens.css`), polices embarquées (Michroma, Inter,
-  JetBrains Mono), aucune ressource téléchargée à l'exécution.
-- **Logo officiel** : intégré dans l'intro, le menu, la barre de titre, l'icône de fenêtre et l'icône
-  Windows (`build/icon.ico`). Variantes générées par `npm run brand` (recadrage, aucune déformation).
+1. **Contrats** : tableau de 4 commandes (6 avec l'agrandissement de l'atelier). La première est toujours
+   la mission d'introduction « Premier PC de jeu » (budget 850 €, 60 FPS en 1080p, 16 Go, SSD 500 Go).
+2. **Accepter** : un seul contrat à la fois ; abandon possible (−6 de réputation, pièces rendues au stock).
+3. **Configurateur** : 8 emplacements ; chaque pièce est achetée (argent réellement débité) ou prise dans le stock.
+   Chaque candidat affiche sa compatibilité et son effet sur l'exigence principale **avant** l'achat.
+   Analyse en direct : coût / budget, compatibilité expliquée, FPS 1080p/1440p/4K, indices bureautique et création,
+   composant limitant, charge et marge d'alimentation, températures en jeu et à pleine charge, bruit, exigences du client.
+4. **Banc de test** : 7 tests qui consomment du temps d'atelier (et des outils pour 2 d'entre eux), courbes
+   température / fréquence / puissance issues de la simulation, observations, journal (résultats obsolètes signalés
+   si la machine a changé).
+5. **Corriger** : remplacer des pièces, nettoyer, changer la pâte thermique.
+6. **Livrer** : bloqué tant que la machine est incomplète, incompatible, hors budget, sous les exigences,
+   ou sans test de stabilité réussi **sur la configuration finale**.
+7. **Résultats** : écran animé (étoiles, satisfaction, détail du paiement, XP, réputation, niveau, déblocages).
+8. **Progression** : 5 niveaux (XP 0 / 200 / 550 / 1100 / 1900) qui débloquent composants, catégories de
+   contrats et équipements ; la réputation fixe la difficulté maximale des contrats proposés (1 + réputation/20).
 
-## Installateur et mises à jour
+### Catégories de contrats
 
-- `electron-builder.yml` : installateur NSIS `HARDWARE_LAB_Setup.exe` (x64, par utilisateur, choix du dossier,
-  raccourcis bureau et menu Démarrer, lancement après installation, données du joueur conservées à la désinstallation).
-- Construction locale possible sous Linux avec Wine : `npm run build && npx electron-builder --win nsis --x64 --publish never`
-  → `release/HARDWARE_LAB_Setup.exe` (≈ 114 Mo), `release/latest.yml`, `release/HARDWARE_LAB_Setup.exe.blockmap`.
-- `.github/workflows/release.yml` (Windows réel, `windows-latest`) : tests, compilation, installateur, installation
-  silencieuse, vérification des raccourcis, test de bout en bout **sur l'application installée**, désinstallation avec
-  vérification de la conservation des données, puis publication sur GitHub Releases (tag `v*` ou lancement manuel
-  avec « publish »). Aucun secret embarqué : le dépôt est public et la publication utilise le `GITHUB_TOKEN` du workflow.
-- `src/main/updater.ts` (electron-updater) : recherche automatique au démarrage (désactivable), bouton
-  « Rechercher des mises à jour », version installée / nouvelle version, téléchargement à la demande avec progression,
-  « Redémarrer et installer » ou « Plus tard » (installation à la fermeture), erreurs réseau et absence de version gérées.
-- Les sauvegardes sont dans `%APPDATA%\HARDWARE LAB`, hors du dossier d'installation : une mise à jour ne les touche pas.
-  Les paramètres de la 0.1.0 (schéma v1) sont migrés vers le schéma v2 (test automatisé).
+| Catégorie | Niveau | Principe |
+| --- | --- | --- |
+| Gaming | 1 | FPS minimum en 1080p ou 1440p, 16 Go, SSD ; parfois un plafond de bruit |
+| Bureautique | 1 | Indice bureautique, bruit, consommation (dès difficulté 2), sans carte graphique nécessaire |
+| Amélioration | 2 | Machine du client à faire évoluer (carte graphique, mémoire, alimentation si nécessaire) |
+| Thermique | 2 | Poussière, pâte sèche ou refroidisseur sous-dimensionné |
+| Stabilité | 3 | Alimentation vieillissante ou trop faible, barrette mémoire défectueuse |
+| Diagnostic | 3 | Une ou deux pannes de toute nature (dont stockage en fin de vie) |
+| Haut de gamme | 4 | FPS 1440p/4K + indice de création, 32 Go, 1 To |
 
-### Publier une nouvelle version
+**Contrats toujours réalisables** : chaque contrat généré embarque une solution de référence construite avec les
+composants débloqués ; elle respecte le budget, toutes les exigences et passe le test de stabilité
+(vérifié par test automatisé sur plus de 250 contrats). Les seuils sont dérivés de cette référence, ce qui évite
+les objectifs impossibles ou contradictoires.
 
-1. Incrémenter `version` dans `package.json` et ajouter l'entrée correspondante dans `src/shared/release-notes.json`.
-2. Pousser puis créer le tag : `git tag v0.2.0 && git push origin v0.2.0`
-   (ou lancer le workflow manuellement avec « publish » coché).
-3. Le workflow publie l'installateur, `latest.yml` et le `.blockmap` ; les jeux installés proposent la mise à jour.
+### Économie et barème de livraison (`src/career/career.ts`)
+
+- Départ : 1 000 €, réputation 10. Revente d'une pièce inutilisée : 60 % du prix.
+- Le client rembourse les pièces installées (contrats de montage) — ou seulement celles qui ont réparé une panne
+  (contrats de réparation) — et paie la main-d'œuvre selon la satisfaction : `main-d'œuvre × (0,5 + 0,5 × note/100)`.
+- Bonus d'économie (montage) : 15 % du budget non dépensé.
+- Note sur 100 : −6 par réserve de compatibilité (max −24), −10 si la stabilité n'est obtenue qu'avec des limitations,
+  −8 par heure de retard, −10 par pièce remplacée inutilement, −5 par intervention inutile, +5/+10 si les
+  performances dépassent l'objectif de 10 %/20 %.
+- Panne non résolue à la livraison : note plafonnée à 20, main-d'œuvre non payée, réputation −(4 + 2 × difficulté).
+- Étoiles : ≥ 90 → 5, ≥ 75 → 4, ≥ 55 → 3, ≥ 35 → 2, sinon 1. XP : 20 + 25 × difficulté + 8 × étoiles.
+- Réputation : (étoiles − 2) × (1 + difficulté) si ≥ 3 étoiles, sinon −(3 − étoiles) × (1 + difficulté).
+
+### Simulation (`src/simulation/`)
+
+Toutes les grandeurs viennent des fiches des composants et de l'état de la machine, sans hasard
+(le hasard ne sert qu'à générer les contrats, avec une graine sauvegardée). Constantes documentées dans `simulate.ts` :
+puissance par charge (repos, bureautique, jeu, CPU, GPU, pleine charge), limite VRM, température de l'air du boîtier
+selon le flux d'air, température processeur selon la capacité du refroidisseur, réduction de fréquence à 95 °C (CPU)
+et 88 °C (GPU) avec perte de performance, pics transitoires de la carte graphique, rendement de l'alimentation,
+bruit combiné, FPS limités par le CPU ou le GPU, effet de la mémoire (capacité, double canal, fréquence).
+Les pannes modifient ces paramètres (flux d'air, efficacité du refroidisseur, capacité de l'alimentation…)
+et produisent leurs symptômes au banc de test à des instants déterminés par la configuration.
+**L'analyse en direct du configurateur ne voit que les fiches techniques** : les pannes cachées ne se révèlent qu'aux tests.
+
+### Écrans
+
+Atelier, Contrats, Configurateur, Banc de test, Bibliothèque (48 composants, achat), Finances (solde, encaissé,
+dépensé, résultat net, valeur du stock, courbe du solde, mouvements), Progression (niveau, réputation, déblocages,
+historique), écran de résultats. Menu principal : Continuer, Nouvelle carrière (l'ancienne est archivée, jamais
+supprimée), Bibliothèque. Textes en français et en anglais.
+
+### Sauvegardes
+
+`%APPDATA%\HARDWARE LAB\saves\career.json`, enregistrée après chaque action, validée par zod dans le processus
+principal (format versionné, migrations prévues), copie de secours `career.backup.json` utilisée automatiquement si
+le fichier principal est illisible, archive lors d'une nouvelle carrière. Les paramètres sont passés au format v2
+(option de mise à jour) avec migration depuis la 0.1.0.
 
 ## Tests réellement exécutés (10/10/2026)
 
 - `npm run typecheck` : OK.
-- `npm test` (Vitest) : **23/23** — dont migration des paramètres 0.1.0 et classification des erreurs de mise à jour ; — validation, corrections et migrations des paramètres,
-  écriture atomique, fichiers corrompus, persistance entre deux sessions, écritures concurrentes.
-- `npm run build` : OK.
-- `xvfb-run -a npm run test:smoke` (Linux, Electron réel) : **16/16** — intro affichée et terminée
-  en 4,4 s, sécurité du renderer, menu, plein écran puis fenêtré, écriture des paramètres,
-  persistance après redémarrage (intro désactivée, langue), réduction des animations,
-  intro réduite passée avec Échap, aucune erreur console.
-- `npm run dev` : démarre, introduction affichée, aucune erreur console.
+- `npm test` (Vitest) : **88/88** — catalogue, compatibilité (15 règles), puissance, températures, réduction de
+  fréquence, performances, banc de test et pannes, faisabilité des contrats générés (> 250), symptômes observables
+  des pannes, économie (achats, solde insuffisant, verrouillage, revente, outils), mission d'introduction de bout en
+  bout, blocages de livraison, abandon, réparations correctes / ratées / inutiles, sauvegarde de carrière
+  (redémarrage, données invalides refusées, restauration de la copie de secours, archive), paramètres et migrations.
+- `xvfb-run -a npm run test:smoke` (Electron réel, Linux) : 17/17.
+- `xvfb-run -a npm run test:e2e` (Electron réel, Linux) : **22/22** — nouvelle carrière, mission d'introduction jouée à
+  l'écran (achats débités, pièce incompatible signalée, livraison bloquée avant le test), test de stabilité, livraison,
+  écran de résultats, solde crédité, second contrat accepté, **redémarrage** : solde, contrat en cours et historique
+  restaurés.
+- Contrôle visuel : captures de toutes les pages à 1920×1080 et d'une mission de réparation.
+- CI Windows (`.github/workflows/release.yml`) : les mêmes tests sur l'application **installée**, désinstallation,
+  puis publication et **mise à jour réelle depuis la version précédente** (voir ci-dessous).
 
-- **Windows réel (GitHub Actions `windows-latest`, exécution 38041256868, 10/10/2026)** : tests unitaires, installateur,
-  installation silencieuse, raccourcis bureau et menu Démarrer, test de bout en bout **17/17 sur l'application installée**
-  (intro 4,46 s, plein écran, persistance, vraie recherche de mise à jour sur GitHub), désinstallation propre avec
-  données du joueur conservées, puis publication.
-- **Version publiée** : https://github.com/banchetnolan2-hub/Hardware-labs/releases/tag/v0.1.0
-  (`HARDWARE_LAB_Setup.exe`, `latest.yml`, `HARDWARE_LAB_Setup.exe.blockmap`).
+## Installateur et mises à jour
+
+- `electron-builder.yml` : NSIS `HARDWARE_LAB_Setup.exe` (x64, par utilisateur, raccourcis, lancement après installation,
+  données conservées à la désinstallation). Construction locale sous Linux avec Wine :
+  `npm run build && npx electron-builder --win nsis --x64 --publish never` → `release/`.
+- Workflow GitHub Actions (Windows) : tests, installateur, installation silencieuse, smoke test et partie complète
+  sur l'application installée, désinstallation, publication GitHub Releases, puis job **update-from-previous** :
+  installe la version publiée précédente, modifie un paramètre, recherche / télécharge / installe la mise à jour depuis
+  le jeu, vérifie la nouvelle version, la relance, la conservation des données et la migration des paramètres.
+- Publier : incrémenter `version` (package.json), ajouter les notes dans `src/shared/release-notes.json`,
+  puis tag `vX.Y.Z` (ou lancement manuel du workflow avec « publish »).
 
 ## Problèmes et limites connus
 
-- **Installateur non signé** (pas de certificat de signature de code) : Windows SmartScreen affichera un avertissement.
-- **Mise à jour réelle 0.1.0 → version suivante : pas encore testée** (il faut deux versions publiées).
-  Le système ne doit pas être considéré comme opérationnel avant ce test.
-- **Logo** : le fichier reçu est un WebP 1536×1024 avec fond sombre intégré (pas de transparence).
-  Il est intégré par mélange `lighten` sur le fond anthracite, sans retouche. Pour une icône
-  Windows plus nette en 16–32 px et pour l'installateur, une version PNG transparente haute
-  résolution (ou SVG) du logo et de l'emblème seul serait préférable.
-- La barre de titre utilise `titleBarOverlay` (boutons natifs Windows) : à valider visuellement sous Windows.
+- **Bac à sable et « Mes configurations »** : non développés (désactivés dans le menu, marqués « À venir · P4 »).
+- **Équilibrage** : les formules sont cohérentes et testées, mais l'économie mérite des sessions de jeu prolongées
+  (rythme de progression au-delà du niveau 3, rentabilité des contrats de réparation).
+- **Audio** : aucun son pour l'instant (pas d'option audio affichée).
+- **Installateur non signé** : avertissement SmartScreen à l'installation.
+- La barre de titre utilise les boutons natifs Windows (`titleBarOverlay`) ; vérifiée en CI mais pas à l'œil sous Windows.
 
-## Décisions techniques
+## Prochaines étapes
 
-- **electron-vite 5 + Vite 7** : seule combinaison compatible avec electron-vite 5 (Vite 8 non supporté).
-- **Vitest 3.2** : Vitest 4 déclenche un bug interne de npm 10 (`edgesOut`) dans cet environnement.
-- **Electron 44**, **React 19**, **TypeScript 5.9**, **Zustand 5**, **zod 4**.
-- **Animations en CSS/SVG** plutôt que Framer Motion : la séquence est une timeline fixe ;
-  `stroke-dashoffset`, `transform` et `opacity` suffisent, sans dépendance supplémentaire,
-  et restent légers sur des PC modestes (aucun flou ni ombre animés).
-- Toutes les librairies du renderer sont en `devDependencies` (intégrées au bundle par Vite) :
-  seul `zod` est embarqué en dépendance d'exécution du processus principal.
-- `src/shared/settings-defaults.ts` est séparé de `settings.ts` pour ne pas embarquer zod dans l'interface.
-
-## Prochaines étapes (Phase 2)
-
-1. `src/simulation/` : types des composants, ≥ 30 composants fictifs cohérents (données centralisées).
-2. Moteur de compatibilité (socket, mémoire, format, dimensions, alimentation, connecteurs,
-   refroidissement) avec trois niveaux et explications + tests.
-3. Page Configurateur et Bibliothèque de composants ; premiers indicateurs de performance.
+1. Bac à sable : budget libre, tous les composants, duplication et comparaison de configurations, pannes à la demande.
+2. Configurations enregistrées (« Mes configurations »).
+3. Équilibrage après sessions de jeu, événements d'atelier (clients pressés, pièces en promotion).
+4. Finition : sons, tutoriel contextuel, accessibilité clavier du configurateur.
 
 ## Reprise du travail
 
 ```bash
-npm install           # puis, si le binaire Electron manque : node node_modules/electron/install.js
+npm install           # si le binaire Electron manque : node node_modules/electron/install.js
 npm run dev           # application en développement
 npm test              # tests unitaires
-npm run build && xvfb-run -a npm run test:smoke   # test de bout en bout (Linux)
+npm run build && xvfb-run -a npm run test:smoke && xvfb-run -a npm run test:e2e   # tests de bout en bout (Linux)
 ```
+
+Arborescence du jeu : `src/simulation/` (catalogue, compatibilité, simulation, banc de test),
+`src/career/` (contrats, économie, progression, format de sauvegarde), `src/renderer/src/game/` (écrans).

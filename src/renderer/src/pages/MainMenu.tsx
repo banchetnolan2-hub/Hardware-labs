@@ -1,11 +1,16 @@
-import { useRef, type CSSProperties, type KeyboardEvent } from 'react'
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { level as careerLevel } from '@career/career'
 import { ROADMAP_PHASE_COUNT, phaseStatus } from '@shared/roadmap'
 import logoEmblem from '../assets/brand/logo-emblem.png'
 import logoFull from '../assets/brand/logo-full.png'
 import { Backdrop } from '../components/Backdrop'
 import { useUpdateStatusLabel } from '../components/UpdatePanel'
 import { useT } from '../i18n'
+import { formatMoney } from '../game/format'
+import { ConfirmDialog, Meter } from '../game/ui'
+import { useLanguage } from '../i18n'
 import { useAppStore, type Route } from '../store/app-store'
+import { useGameStore } from '../store/game-store'
 import './main-menu.css'
 
 type MenuKey = keyof ReturnType<typeof useT>['menu']['items']
@@ -13,15 +18,15 @@ type MenuKey = keyof ReturnType<typeof useT>['menu']['items']
 type MenuEntry = {
   key: MenuKey
   /** Action disponible, ou phase de développement qui l'apportera. */
-  action: { route: Route } | { quit: true } | { phase: number }
+  action: { route: Route } | { quit: true } | { phase: number } | { newCareer: true }
 }
 
 const ENTRIES: MenuEntry[] = [
-  { key: 'continue', action: { phase: 3 } },
-  { key: 'newCareer', action: { phase: 3 } },
+  { key: 'continue', action: { route: 'workshop' } },
+  { key: 'newCareer', action: { newCareer: true } },
   { key: 'sandbox', action: { phase: 4 } },
-  { key: 'configurations', action: { phase: 2 } },
-  { key: 'library', action: { phase: 2 } },
+  { key: 'configurations', action: { phase: 4 } },
+  { key: 'library', action: { route: 'library' } },
   { key: 'settings', action: { route: 'settings' } },
   { key: 'releaseNotes', action: { route: 'release-notes' } },
   { key: 'quit', action: { quit: true } }
@@ -35,10 +40,23 @@ export function MainMenu() {
   const updateLabel = useUpdateStatusLabel(updateStatus)
   const updateReady = updateStatus.state === 'available' || updateStatus.state === 'downloaded'
   const listRef = useRef<HTMLUListElement>(null)
+  const language = useLanguage()
+  const career = useGameStore((state) => state.career)
+  const startNewCareer = useGameStore((state) => state.startNewCareer)
+  const [confirmNew, setConfirmNew] = useState(false)
+
+  const beginCareer = async () => {
+    await startNewCareer()
+    navigate('contracts')
+  }
 
   const activate = (entry: MenuEntry) => {
     if ('route' in entry.action) navigate(entry.action.route)
     else if ('quit' in entry.action) void window.hardwareLab.quit()
+    else if ('newCareer' in entry.action) {
+      if (career) setConfirmNew(true)
+      else void beginCareer()
+    }
   }
 
   // Navigation au clavier entre les entrées disponibles.
@@ -65,15 +83,17 @@ export function MainMenu() {
             {ENTRIES.map((entry, index) => {
               const item = t.menu.items[entry.key]
               const upcoming = 'phase' in entry.action ? entry.action.phase : null
+              const unavailable = entry.key === 'continue' && !career
               return (
                 <li key={entry.key} style={{ '--i': index } as CSSProperties}>
                   <button
                     type="button"
                     className={`menu-item ${entry.key === 'quit' ? 'menu-item--quit' : ''}`}
-                    disabled={upcoming !== null}
-                    title={upcoming !== null ? t.menu.upcomingIn(upcoming) : undefined}
+                    disabled={upcoming !== null || unavailable}
+                    title={upcoming !== null ? t.menu.upcomingIn(upcoming) : unavailable ? t.menu.noCareer : undefined}
                     onClick={() => activate(entry)}
-                    autoFocus={entry.key === 'settings'}
+                    autoFocus={entry.key === (career ? 'continue' : 'newCareer')}
+                    data-testid={`menu-${entry.key}`}
                   >
                     <span className="menu-item__index mono">{String(index + 1).padStart(2, '0')}</span>
                     <span className="menu-item__text">
@@ -98,13 +118,41 @@ export function MainMenu() {
       <section className="main-menu__content">
         <article className="panel main-menu__lab" style={{ '--i': 0 } as CSSProperties}>
           <h2 className="panel-title">{t.menu.lab.title}</h2>
-          <div className="lab-empty">
-            <img src={logoEmblem} alt="" className="lab-empty__emblem" draggable={false} />
-            <div>
-              <p className="lab-empty__title">{t.menu.lab.empty}</p>
-              <p className="lab-empty__hint">{t.menu.lab.emptyHint}</p>
+          {career ? (
+            <div className="lab-summary" data-testid="lab-summary">
+              <img src={logoEmblem} alt="" className="lab-empty__emblem" draggable={false} />
+              <div className="lab-summary__stats">
+                <div>
+                  <span className="lab-summary__label">{t.game.hud.balance}</span>
+                  <span className="lab-summary__value mono">{formatMoney(career.money, language)}</span>
+                </div>
+                <div>
+                  <span className="lab-summary__label">{t.game.hud.level}</span>
+                  <span className="lab-summary__value mono">{careerLevel(career)}</span>
+                </div>
+                <div>
+                  <span className="lab-summary__label">{t.game.hud.reputation}</span>
+                  <span className="lab-summary__value mono">{Math.round(career.reputation)}</span>
+                  <Meter value={career.reputation} max={100} tone="success" />
+                </div>
+                <div>
+                  <span className="lab-summary__label">{t.menu.lab.delivered}</span>
+                  <span className="lab-summary__value mono">{career.stats.delivered}</span>
+                </div>
+              </div>
+              <p className="lab-summary__job">
+                {career.active ? `${t.game.hud.activeJob} : ${career.active.contract.title[language]} — ${career.active.contract.client.name}` : t.menu.lab.contractsWaiting(career.board.length)}
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="lab-empty">
+              <img src={logoEmblem} alt="" className="lab-empty__emblem" draggable={false} />
+              <div>
+                <p className="lab-empty__title">{t.menu.lab.empty}</p>
+                <p className="lab-empty__hint">{t.menu.lab.emptyHint}</p>
+              </div>
+            </div>
+          )}
         </article>
 
         <article className="panel main-menu__roadmap" style={{ '--i': 1 } as CSSProperties}>
@@ -159,6 +207,18 @@ export function MainMenu() {
       </section>
 
       <footer className="main-menu__footer mono">HARDWARE LAB · v{appInfo?.version}</footer>
+
+      {confirmNew && (
+        <ConfirmDialog
+          message={t.menu.newCareerConfirm}
+          tone="danger"
+          onCancel={() => setConfirmNew(false)}
+          onConfirm={() => {
+            setConfirmNew(false)
+            void beginCareer()
+          }}
+        />
+      )}
     </div>
   )
 }

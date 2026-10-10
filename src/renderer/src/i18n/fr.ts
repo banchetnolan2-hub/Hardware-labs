@@ -1,4 +1,7 @@
+import { gameFr } from './game-fr'
+
 export const fr = {
+  game: gameFr,
   intro: {
     skip: 'Passer',
     skipKey: 'Échap',
@@ -23,9 +26,12 @@ export const fr = {
     lab: {
       title: 'Laboratoire',
       empty: 'Aucune carrière en cours',
-      emptyHint:
-        'Le mode carrière arrive à la phase 3. Votre atelier, votre budget et vos contrats apparaîtront ici.'
+      emptyHint: 'Lancez une nouvelle carrière : un premier client vous attend avec une commande de PC de jeu.',
+      delivered: 'Commandes livrées',
+      contractsWaiting: (count: number) => `${count} contrat(s) en attente sur le tableau.`
     },
+    noCareer: 'Aucune carrière en cours',
+    newCareerConfirm: 'Une carrière est déjà en cours. Elle sera archivée (non supprimée) et une nouvelle partie commencera. Continuer ?',
     roadmap: {
       title: 'Feuille de route',
       done: 'Terminé',

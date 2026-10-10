@@ -1,5 +1,43 @@
 [
   {
+    "version": "0.2.0",
+    "date": "2026-10-10",
+    "title": {
+      "fr": "Le jeu commence : carrière, configurateur et banc de test",
+      "en": "The game begins: career, configurator and test bench"
+    },
+    "changes": [
+      {
+        "fr": "Mode carrière : atelier, solde, réputation, expérience et cinq niveaux de progression.",
+        "en": "Career mode: workshop, balance, reputation, experience and five progression levels."
+      },
+      {
+        "fr": "Première mission scénarisée, puis contrats générés dans sept catégories : bureautique, gaming, haut de gamme, amélioration, thermique, stabilité et diagnostic.",
+        "en": "Scripted first mission, then generated contracts in seven categories: office, gaming, high-end, upgrade, thermal, stability and diagnosis."
+      },
+      {
+        "fr": "Configurateur interactif : 48 composants, compatibilité expliquée, performances, consommation, températures et marge d’alimentation en direct.",
+        "en": "Interactive configurator: 48 components, explained compatibility, live performance, power draw, temperatures and PSU headroom."
+      },
+      {
+        "fr": "Banc de test : charge processeur et graphique, stabilité, mémoire, inspection, mesure d’alimentation et S.M.A.R.T., avec courbes issues de la simulation.",
+        "en": "Test bench: CPU and GPU stress, stability, memory, inspection, PSU measurement and S.M.A.R.T., with simulation-driven charts."
+      },
+      {
+        "fr": "Pannes à diagnostiquer et à réparer (poussière, pâte thermique, alimentation, mémoire, stockage), interventions et remplacements.",
+        "en": "Faults to diagnose and repair (dust, thermal paste, PSU, memory, storage), service work and replacements."
+      },
+      {
+        "fr": "Livraison notée, écran de résultats animé, outils d’atelier à acheter, finances et historique des missions.",
+        "en": "Rated delivery, animated results screen, workshop tools to buy, finances and mission history."
+      },
+      {
+        "fr": "Progression sauvegardée automatiquement, avec copie de secours.",
+        "en": "Progress saved automatically, with a backup copy."
+      }
+    ]
+  },
+  {
     "version": "0.1.0",
     "date": "2026-10-10",
     "title": {

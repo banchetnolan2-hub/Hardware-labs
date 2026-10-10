@@ -25,7 +25,7 @@ describe('catalogue des composants', () => {
     for (const c of CATALOG) {
       expect(c.price, c.id).toBeGreaterThan(0)
       expect(c.unlockLevel, c.id).toBeGreaterThanOrEqual(1)
-      expect(c.unlockLevel, c.id).toBeLessThanOrEqual(6)
+      expect(c.unlockLevel, c.id).toBeLessThanOrEqual(5)
       expect(c.summary.fr.length, c.id).toBeGreaterThan(5)
       expect(c.summary.en.length, c.id).toBeGreaterThan(5)
       switch (c.slot) {
