@@ -102,8 +102,13 @@ le fichier principal est illisible, archive lors d'une nouvelle carrière. Les p
   écran de résultats, solde crédité, second contrat accepté, **redémarrage** : solde, contrat en cours et historique
   restaurés.
 - Contrôle visuel : captures de toutes les pages à 1920×1080 et d'une mission de réparation.
-- CI Windows (`.github/workflows/release.yml`) : les mêmes tests sur l'application **installée**, désinstallation,
-  puis publication et **mise à jour réelle depuis la version précédente** (voir ci-dessous).
+- **CI Windows réel, exécution 38044689746 (10/10/2026) : tout réussi.** Tests unitaires, installateur, installation
+  silencieuse et raccourcis, smoke test et **partie complète sur l'application installée**, désinstallation avec
+  données conservées, publication de https://github.com/banchetnolan2-hub/Hardware-labs/releases/tag/v0.2.0.
+- **Mise à jour réelle v0.1.0 → v0.2.0 vérifiée sous Windows** (même exécution) : la 0.1.0 installée trouve la 0.2.0
+  depuis l'écran Paramètres, la télécharge, se ferme, s'installe en silence et se relance ; version installée 0.2.0.0,
+  données du joueur conservées, réglage modifié conservé et paramètres migrés au format v2.
+  **Les mises à jour automatiques sont donc opérationnelles.**
 
 ## Installateur et mises à jour
 
