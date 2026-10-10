@@ -43,6 +43,20 @@ describe('loadSettings', () => {
     expect(result.settings.language).toBe('en')
     expect(result.settings.intro.enabled).toBe(false)
     expect(result.issues).toContain('migration v0 → v1')
+    expect(result.issues).toContain('migration v1 → v2')
+  })
+
+  it('migre les paramètres de la version 0.1.0 (schéma v1) sans perte', () => {
+    const v1 = {
+      schemaVersion: 1,
+      display: { mode: 'fullscreen', rememberWindowBounds: false },
+      intro: { enabled: false },
+      accessibility: { reducedMotion: 'reduce' },
+      language: 'en'
+    }
+    const result = loadSettings(v1)
+    expect(result.settings).toEqual({ ...v1, schemaVersion: 2, updates: { autoCheck: true } })
+    expect(result.changed).toBe(true)
   })
 
   it('récupère ce qui est compatible depuis une version plus récente du jeu', () => {

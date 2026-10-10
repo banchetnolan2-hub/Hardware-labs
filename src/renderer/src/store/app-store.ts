@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { AppInfo } from '@shared/ipc'
 import type { Settings } from '@shared/settings'
 import { DEFAULT_SETTINGS } from '@shared/settings-defaults'
+import type { UpdateStatus } from '@shared/updater'
 
 export type Route = 'menu' | 'settings' | 'release-notes'
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
@@ -12,6 +13,7 @@ type AppState = {
   settings: Settings
   appInfo: AppInfo | null
   saveStatus: SaveStatus
+  updateStatus: UpdateStatus
   init: () => Promise<void>
   navigate: (route: Route) => void
   updateSettings: (update: (draft: Settings) => Settings) => Promise<void>
@@ -23,13 +25,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   appInfo: null,
   saveStatus: 'idle',
+  updateStatus: { state: 'idle' },
 
   init: async () => {
-    const [settings, appInfo] = await Promise.all([
+    window.hardwareLab.onUpdateStatus((updateStatus) => set({ updateStatus }))
+    const [settings, appInfo, updateStatus] = await Promise.all([
       window.hardwareLab.getSettings(),
-      window.hardwareLab.getAppInfo()
+      window.hardwareLab.getAppInfo(),
+      window.hardwareLab.getUpdateStatus()
     ])
-    set({ settings, appInfo, ready: true })
+    set({ settings, appInfo, updateStatus, ready: true })
   },
 
   navigate: (route) => set({ route }),

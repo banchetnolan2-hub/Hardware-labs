@@ -1,6 +1,7 @@
 // Test de fumée : lance l'application compilée (out/), capture l'introduction et le menu,
 // modifie un paramètre puis relance l'application pour vérifier sa persistance.
 // Usage : npm run build && xvfb-run -a node scripts/smoke-test.mjs [dossier-captures]
+// Avec HARDWARE_LAB_EXE=<chemin de l'exécutable installé>, teste l'application installée.
 import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -18,10 +19,11 @@ const check = (condition, message) => {
 }
 
 async function launch() {
+  const installed = process.env.HARDWARE_LAB_EXE
   const app = await electron.launch({
-    args: ['--no-sandbox', root],
+    args: installed ? [] : ['--no-sandbox', root],
     env: { ...process.env, HARDWARE_LAB_USER_DATA: userData },
-    executablePath: (await import('electron')).default
+    executablePath: installed ?? (await import('electron')).default
   })
   const page = await app.firstWindow()
   const errors = []
@@ -43,7 +45,7 @@ try {
     api: Object.keys(window.hardwareLab ?? {}).sort().join(',')
   }))
   check(security.require === 'undefined' && security.process === 'undefined', 'aucun accès Node dans le renderer')
-  check(security.api === 'getAppInfo,getSettings,openDataFolder,quit,saveSettings', `API preload limitée (${security.api})`)
+  check(security.api === 'checkForUpdates,downloadUpdate,getAppInfo,getSettings,getUpdateStatus,installUpdate,onUpdateStatus,openDataFolder,quit,saveSettings', `API preload limitée (${security.api})`)
 
   // Durée réelle mesurée dans la page (indépendante de la lenteur des captures).
   const introMs = await page.evaluate(
@@ -113,6 +115,20 @@ try {
   await page.waitForTimeout(800)
   const windowed = await app.evaluate(({ BrowserWindow }) => !BrowserWindow.getAllWindows()[0].isFullScreen())
   check(windowed, 'retour au mode fenêtré')
+  // Mises à jour : en développement le bouton est désactivé ; installé, une vraie recherche a lieu.
+  const checkButton = page.locator('button:has-text("Rechercher des mises à jour")')
+  if (process.env.HARDWARE_LAB_EXE) {
+    await checkButton.click()
+    await page.waitForFunction(
+      () => !/Recherche en cours|Aucune recherche/.test(document.querySelector('.update-controls__status')?.textContent ?? ''),
+      null,
+      { timeout: 30000 }
+    )
+    const updateText = await page.textContent('.update-controls__status')
+    check(!/Indisponible/.test(updateText ?? ''), `recherche de mise à jour effectuée : ${updateText?.trim()}`)
+  } else {
+    check(await checkButton.isDisabled(), 'mises à jour désactivées en développement')
+  }
   await page.click('button[role="switch"][aria-label="Introduction au lancement"]')
   await page.click('button[role="radio"]:has-text("English")')
   await page.waitForSelector('text=Saved')

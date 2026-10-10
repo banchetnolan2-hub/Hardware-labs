@@ -18,6 +18,7 @@
     "brand": "python3 scripts/generate-brand-assets.py"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "zod": "^4.6.5"
   },
   "devDependencies": {

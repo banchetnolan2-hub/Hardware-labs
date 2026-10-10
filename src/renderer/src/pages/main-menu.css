@@ -310,3 +310,14 @@
     display: none;
   }
 }
+.link-button {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--hl-cyan);
+  cursor: pointer;
+  text-align: right;
+}
+.link-button:hover {
+  text-decoration: underline;
+}

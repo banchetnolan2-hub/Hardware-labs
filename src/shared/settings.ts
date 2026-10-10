@@ -31,6 +31,7 @@ export const SettingsSchema = z
       .strict(),
     intro: z.object({ enabled: z.boolean() }).strict(),
     accessibility: z.object({ reducedMotion: ReducedMotionSchema }).strict(),
+    updates: z.object({ autoCheck: z.boolean() }).strict(),
     language: LanguageSchema
   })
   .strict()
@@ -53,6 +54,9 @@ const LenientSettingsSchema = z.object({
   accessibility: z
     .object({ reducedMotion: ReducedMotionSchema.catch(DEFAULT_SETTINGS.accessibility.reducedMotion) })
     .catch(DEFAULT_SETTINGS.accessibility),
+  updates: z
+    .object({ autoCheck: z.boolean().catch(DEFAULT_SETTINGS.updates.autoCheck) })
+    .catch(DEFAULT_SETTINGS.updates),
   language: LanguageSchema.catch(DEFAULT_SETTINGS.language)
 })
 
@@ -62,7 +66,9 @@ type Migration = (input: Record<string, unknown>) => Record<string, unknown>
 const SETTINGS_MIGRATIONS: Migration[] = [
   // v0 : fichiers sans `schemaVersion` (aucune version publique ne l'a produit, mais
   // on les accepte en conservant les champs reconnus).
-  (input) => ({ ...input, schemaVersion: 1 })
+  (input) => ({ ...input, schemaVersion: 1 }),
+  // v1 → v2 (0.1.0 → 0.2.0) : ajout des options de mise à jour.
+  (input) => ({ ...input, schemaVersion: 2, updates: { autoCheck: true } })
 ]
 
 export type SettingsLoadResult = {

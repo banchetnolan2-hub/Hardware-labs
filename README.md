@@ -32,4 +32,9 @@ src/renderer/        interface React : introduction, pages, composants, styles, 
 src/shared/          types, validation et données partagées
 ```
 
+## Installateur et publication
+
+Voir la section « Installateur et mises à jour » de [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
+Les versions publiées sont disponibles dans les [Releases GitHub](https://github.com/banchetnolan2-hub/Hardware-labs/releases).
+
 Les données du joueur sont stockées dans le dossier utilisateur (`%APPDATA%\HARDWARE LAB` sous Windows).

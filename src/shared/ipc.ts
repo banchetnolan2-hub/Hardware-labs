@@ -1,4 +1,5 @@
 import type { Settings } from './settings'
+import type { UpdateStatus } from './updater'
 
 /** Liste exhaustive des canaux IPC autorisés. */
 export const IPC = {
@@ -6,7 +7,13 @@ export const IPC = {
   quit: 'app:quit',
   openDataFolder: 'app:open-data-folder',
   getSettings: 'settings:get',
-  saveSettings: 'settings:save'
+  saveSettings: 'settings:save',
+  updaterGetStatus: 'updater:get-status',
+  updaterCheck: 'updater:check',
+  updaterDownload: 'updater:download',
+  updaterInstall: 'updater:install',
+  /** Événement main → renderer. */
+  updaterStatus: 'updater:status'
 } as const
 
 export type AppInfo = {
@@ -28,4 +35,10 @@ export type HardwareLabApi = {
   openDataFolder: () => Promise<void>
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Settings) => Promise<SaveSettingsResult>
+  getUpdateStatus: () => Promise<UpdateStatus>
+  checkForUpdates: () => Promise<UpdateStatus>
+  downloadUpdate: () => Promise<UpdateStatus>
+  installUpdate: () => Promise<void>
+  /** Abonnement aux changements d'état ; renvoie la fonction de désabonnement. */
+  onUpdateStatus: (listener: (status: UpdateStatus) => void) => () => void
 }

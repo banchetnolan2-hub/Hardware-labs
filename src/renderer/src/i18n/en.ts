@@ -47,7 +47,8 @@ export const en: Messages = {
       build: 'Build type',
       packaged: 'Installed application',
       development: 'Development',
-      engine: 'Engine'
+      engine: 'Engine',
+      updates: 'Updates'
     },
     keyboard: '↑ ↓ to navigate · Enter to select'
   },
@@ -71,6 +72,29 @@ export const en: Messages = {
       system: 'System',
       reduce: 'Reduced',
       full: 'Full'
+    },
+    updates: {
+      title: 'Updates',
+      autoCheck: 'Check automatically on launch',
+      autoCheckHint: 'Downloads never start without your consent.',
+      status: 'Status',
+      check: 'Check for updates',
+      download: 'Download',
+      install: 'Restart and install',
+      later: 'Later',
+      laterHint: 'The update will be installed when you quit the game.',
+      states: {
+        unsupported: 'Unavailable in development builds',
+        idle: 'Not checked yet',
+        checking: 'Checking…',
+        notAvailable: 'HARDWARE LAB is up to date',
+        available: (v: string) => `Version ${v} available`,
+        downloading: (v: string, p: number) => `Downloading version ${v} — ${p}%`,
+        downloaded: (v: string) => `Version ${v} ready to install`,
+        network: 'Could not reach the update server. Check your connection.',
+        unavailable: 'No published version is available yet.',
+        other: 'Checking for updates failed.'
+      }
     },
     language: { title: 'Language', label: 'Interface language' },
     about: {

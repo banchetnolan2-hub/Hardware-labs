@@ -2,6 +2,7 @@ import type { DisplayMode, Language, ReducedMotionPreference } from '@shared/set
 import { Backdrop } from '../components/Backdrop'
 import { SettingRow, Segmented, Toggle } from '../components/controls'
 import { PageHeader } from '../components/PageHeader'
+import { UpdateControls } from '../components/UpdatePanel'
 import { useT } from '../i18n'
 import { useAppStore } from '../store/app-store'
 import './pages.css'
@@ -75,6 +76,23 @@ export function Settings() {
               onChange={(reducedMotion) => update((s) => ({ ...s, accessibility: { reducedMotion } }))}
             />
           </SettingRow>
+        </section>
+
+        <section className="panel subpage__section">
+          <h2 className="panel-title">{t.settings.updates.title}</h2>
+          <SettingRow label={t.settings.about.version}>
+            <span className="mono">v{appInfo?.version}</span>
+          </SettingRow>
+          <SettingRow label={t.settings.updates.autoCheck} hint={t.settings.updates.autoCheckHint}>
+            <Toggle
+              label={t.settings.updates.autoCheck}
+              checked={settings.updates.autoCheck}
+              onLabel={t.settings.on}
+              offLabel={t.settings.off}
+              onChange={(autoCheck) => update((s) => ({ ...s, updates: { autoCheck } }))}
+            />
+          </SettingRow>
+          <UpdateControls />
         </section>
 
         <section className="panel subpage__section">

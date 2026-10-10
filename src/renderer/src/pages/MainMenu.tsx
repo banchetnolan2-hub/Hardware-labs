@@ -3,6 +3,7 @@ import { ROADMAP_PHASE_COUNT, phaseStatus } from '@shared/roadmap'
 import logoEmblem from '../assets/brand/logo-emblem.png'
 import logoFull from '../assets/brand/logo-full.png'
 import { Backdrop } from '../components/Backdrop'
+import { useUpdateStatusLabel } from '../components/UpdatePanel'
 import { useT } from '../i18n'
 import { useAppStore, type Route } from '../store/app-store'
 import './main-menu.css'
@@ -30,6 +31,9 @@ export function MainMenu() {
   const t = useT()
   const navigate = useAppStore((state) => state.navigate)
   const appInfo = useAppStore((state) => state.appInfo)
+  const updateStatus = useAppStore((state) => state.updateStatus)
+  const updateLabel = useUpdateStatusLabel(updateStatus)
+  const updateReady = updateStatus.state === 'available' || updateStatus.state === 'downloaded'
   const listRef = useRef<HTMLUListElement>(null)
 
   const activate = (entry: MenuEntry) => {
@@ -136,6 +140,18 @@ export function MainMenu() {
               <dt>{t.menu.system.engine}</dt>
               <dd className="mono">
                 Electron {appInfo?.electron} · Chromium {appInfo?.chrome?.split('.')[0]}
+              </dd>
+            </div>
+            <div>
+              <dt>{t.menu.system.updates}</dt>
+              <dd>
+                {updateReady ? (
+                  <button type="button" className="link-button" onClick={() => navigate('settings')}>
+                    {updateLabel}
+                  </button>
+                ) : (
+                  updateLabel
+                )}
               </dd>
             </div>
           </dl>

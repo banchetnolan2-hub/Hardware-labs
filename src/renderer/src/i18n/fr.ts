@@ -46,7 +46,8 @@ export const fr = {
       build: 'Type de build',
       packaged: 'Application installée',
       development: 'Développement',
-      engine: 'Moteur'
+      engine: 'Moteur',
+      updates: 'Mises à jour'
     },
     keyboard: '↑ ↓ pour naviguer · Entrée pour valider'
   },
@@ -74,6 +75,29 @@ export const fr = {
       system: 'Système',
       reduce: 'Réduites',
       full: 'Complètes'
+    },
+    updates: {
+      title: 'Mises à jour',
+      autoCheck: 'Rechercher automatiquement au démarrage',
+      autoCheckHint: 'Le téléchargement ne démarre jamais sans votre accord.',
+      status: 'État',
+      check: 'Rechercher des mises à jour',
+      download: 'Télécharger',
+      install: 'Redémarrer et installer',
+      later: 'Plus tard',
+      laterHint: 'La mise à jour sera installée à la fermeture du jeu.',
+      states: {
+        unsupported: 'Indisponible en version de développement',
+        idle: 'Aucune recherche effectuée',
+        checking: 'Recherche en cours…',
+        notAvailable: 'HARDWARE LAB est à jour',
+        available: (v: string) => `Version ${v} disponible`,
+        downloading: (v: string, p: number) => `Téléchargement de la version ${v} — ${p} %`,
+        downloaded: (v: string) => `Version ${v} prête à être installée`,
+        network: 'Impossible de joindre le serveur de mises à jour. Vérifiez votre connexion.',
+        unavailable: 'Aucune version publiée n’est disponible pour le moment.',
+        other: 'La recherche de mises à jour a échoué.'
+      }
     },
     language: { title: 'Langue', label: 'Langue de l’interface' },
     about: {

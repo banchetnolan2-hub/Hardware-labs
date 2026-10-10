@@ -181,3 +181,14 @@ html[data-motion='reduced'] *::after {
 .titlebar img {
   transition: opacity var(--hl-duration-page);
 }
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--hl-line);
+}
+.btn-primary {
+  background: var(--hl-cyan-soft);
+  border-color: var(--hl-cyan);
+  color: var(--hl-text);
+}

@@ -1,0 +1,98 @@
+name: Windows — installateur et publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publier la version de package.json sur GitHub Releases
+        type: boolean
+        default: false
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dépendances
+        run: npm ci
+
+      - name: Vérification TypeScript
+        run: npm run typecheck
+
+      - name: Tests unitaires
+        run: npm test
+
+      - name: Compilation
+        run: npx electron-vite build
+
+      - name: Installateur (electron-builder)
+        run: npx electron-builder --win nsis --x64 --publish never
+
+      - name: Installation silencieuse et raccourcis
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "release\HARDWARE_LAB_Setup.exe" -ArgumentList "/S" -Wait
+          $exe = Join-Path $env:LOCALAPPDATA "Programs\HARDWARE LAB\HARDWARE LAB.exe"
+          if (!(Test-Path $exe)) { throw "Exécutable introuvable après installation : $exe" }
+          $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\HARDWARE LAB.lnk"
+          if (!(Test-Path $startMenu)) { throw "Raccourci du menu Démarrer absent" }
+          $desktop = Join-Path ([Environment]::GetFolderPath('Desktop')) "HARDWARE LAB.lnk"
+          if (!(Test-Path $desktop)) { throw "Raccourci du bureau absent" }
+          (Get-Item $exe).VersionInfo | Format-List ProductName, ProductVersion, FileDescription
+          "HARDWARE_LAB_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Test de bout en bout sur l'application installée
+        run: node scripts/smoke-test.mjs test-results/windows
+
+      - name: Désinstallation (les données du joueur doivent être conservées)
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:APPDATA "HARDWARE LAB"
+          New-Item -ItemType Directory -Force $data | Out-Null
+          '{"sentinel":true}' | Set-Content (Join-Path $data "sentinel.json")
+          $dir = Join-Path $env:LOCALAPPDATA "Programs\HARDWARE LAB"
+          Start-Process -FilePath (Join-Path $dir "Uninstall HARDWARE LAB.exe") -ArgumentList "/S", "_?=$dir" -Wait
+          if (Test-Path (Join-Path $dir "HARDWARE LAB.exe")) { throw "L'application est toujours présente après désinstallation" }
+          if (!(Test-Path (Join-Path $data "sentinel.json"))) { throw "Les données du joueur ont été supprimées" }
+          Write-Output "Désinstallation propre, données conservées."
+
+      - name: Captures du test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-windows
+          path: test-results/windows
+          if-no-files-found: ignore
+
+      - name: Fichiers de distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: HARDWARE_LAB_Setup
+          path: |
+            release/HARDWARE_LAB_Setup.exe
+            release/HARDWARE_LAB_Setup.exe.blockmap
+            release/latest.yml
+
+      - name: Publication sur GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          node scripts/release-notes.mjs | Out-File -FilePath notes.md -Encoding utf8
+          gh release create "v$version" `
+            release/HARDWARE_LAB_Setup.exe release/HARDWARE_LAB_Setup.exe.blockmap release/latest.yml `
+            --title "HARDWARE LAB $version" --notes-file notes.md --target $env:GITHUB_SHA

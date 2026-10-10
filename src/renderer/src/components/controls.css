@@ -102,3 +102,44 @@
 .setting-row__control {
   flex-shrink: 0;
 }
+
+.update-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hl-space-3);
+  padding-top: var(--hl-space-4);
+  border-top: 1px solid var(--hl-line);
+}
+.update-controls__status {
+  font-size: 14px;
+}
+.update-controls__status--accent {
+  color: var(--hl-cyan);
+}
+.update-controls__status--error {
+  color: var(--hl-warning);
+}
+.update-controls__detail {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--hl-text-faint);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+.update-controls__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hl-space-3);
+}
+.progress {
+  height: 4px;
+  background: var(--hl-bg-deep);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress__bar {
+  height: 100%;
+  background: var(--hl-cyan);
+  transform-origin: left;
+  transition: transform var(--hl-duration) linear;
+}
