@@ -1,5 +1,6 @@
-// Renders index.html frame by frame into hikari-pub.mp4 (1080p30 + music).
+// Renders index.html frame by frame into an MP4 with music (default 1080p30).
 // Usage: node promo/hikari/render.mjs   (needs playwright + ffmpeg)
+// 1440p60: HEIGHT=1440 FPS=60 CRF=16 OUT=hikari-pub-1440p60.mp4 node promo/hikari/render.mjs
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdtempSync } from "node:fs";
@@ -9,11 +10,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
-const FPS = 30;
+const FPS = +(process.env.FPS || 30);
+const HEIGHT = +(process.env.HEIGHT || 1080), SCALE = HEIGHT / 1080, WIDTH = Math.round(1920 * SCALE);
 const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined;
 const browser = await chromium.launch({ proxy, args: ["--ignore-certificate-errors"] });
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-await page.goto(pathToFileURL(join(here, "index.html")).href + "?render");
+const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
+await page.goto(pathToFileURL(join(here, "index.html")).href + `?render&scale=${SCALE}`);
 await page.evaluate(() => window.__film.fontsReady);
 await page.evaluate(() => document.fonts.ready);
 
@@ -22,12 +24,12 @@ const wav = join(tmp, "music.wav");
 writeFileSync(wav, Buffer.from(await page.evaluate(async () => window.__film.wavBase64(await window.__film.renderMusic())), "base64"));
 
 const dur = await page.evaluate(() => window.__film.DUR);
-const out = join(here, "hikari-pub.mp4");
+const out = join(here, process.env.OUT || "hikari-pub.mp4");
 const ff = spawn("ffmpeg", ["-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", String(FPS), "-c:v", "mjpeg", "-i", "-", "-i", wav,
-  "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", out], { stdio: ["pipe", "inherit", "inherit"] });
+  "-c:v", "libx264", "-preset", "medium", "-crf", process.env.CRF || "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", out], { stdio: ["pipe", "inherit", "inherit"] });
 const total = dur * FPS;
 for (let f = 0; f < total; f++) {
-  const b64 = await page.evaluate(t => { window.__film.draw(t); return document.getElementById("film").toDataURL("image/jpeg", 0.92).split(",")[1]; }, f / FPS);
+  const b64 = await page.evaluate(t => { window.__film.draw(t); return document.getElementById("film").toDataURL("image/jpeg", 0.95).split(",")[1]; }, f / FPS);
   if (!ff.stdin.write(Buffer.from(b64, "base64"))) await new Promise(r => ff.stdin.once("drain", r));
   if (f % 150 === 0) console.log(`frame ${f}/${total}`);
 }

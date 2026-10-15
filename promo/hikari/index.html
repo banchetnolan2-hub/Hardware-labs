@@ -104,6 +104,8 @@ const COL = { night: "#0f0f2a", panel: "#1a1a3c", mint: "#a8f0a0", amber: "#ffb5
 const DISPLAY = '"Dela Gothic One", "IPAGothic", "Inter", sans-serif';
 const BODY = '"M PLUS Rounded 1c", "Inter", sans-serif';
 const cv = document.getElementById("film");
+const S = +(new URLSearchParams(location.search).get("scale") || 1); // render scale, e.g. 1.3333 for 1440p
+cv.width = W * S; cv.height = H * S;
 const ctx = cv.getContext("2d");
 const avatar = new Image(); avatar.src = AVATAR;
 const faces = Object.fromEntries(Object.entries(MEMBERS).map(([k, src]) => { const im = new Image(); im.src = src; return [k, im]; }));
@@ -428,6 +430,7 @@ function sceneFinal(t) { // 40 – 50 : the server card
 }
 
 function draw(t) {
+  ctx.setTransform(S, 0, 0, S, 0, 0);
   ctx.save();
   ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
   if (t < 5) sceneIntro(t);
