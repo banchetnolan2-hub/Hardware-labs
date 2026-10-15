@@ -1,0 +1,530 @@
+<title>Hikari光 Pub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<style>
+/* Layout: a single cinema stage, the 16:9 film centered, transport bar underneath. Single dark look on purpose (it's a screen). */
+:root {
+  --night: #0f0f2a;
+  --panel: #1a1a3c;
+  --mint: #a8f0a0;
+  --amber: #ffb547;
+  --blush: #ff8fb1;
+  --snow: #f6f7ff;
+  --mute: #9b9cc4;
+  --display: "Dela Gothic One", "IPAGothic", "Inter", sans-serif;
+  --body: "M PLUS Rounded 1c", "Inter", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--night); color: var(--snow); }
+body {
+  font-family: var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 32px;
+}
+.wrap { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.top h1 { font-family: var(--display); font-weight: 400; font-size: 1.5rem; margin: 0; letter-spacing: .02em; }
+.top h1 span { color: var(--amber); }
+.top p { margin: 0; color: var(--mute); font-size: .9rem; }
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 30px 80px -30px rgba(168, 240, 160, .25); }
+canvas { display: block; width: 100%; height: 100%; }
+.bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bar button {
+  font: 800 .9rem var(--body); color: var(--night); background: var(--mint);
+  border: 0; border-radius: 999px; padding: 9px 16px; cursor: pointer;
+}
+.bar button.ghost { background: transparent; color: var(--snow); box-shadow: inset 0 0 0 1.5px rgba(246, 247, 255, .3); }
+.bar button:focus-visible, .bar input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.bar input[type=range] { flex: 1 1 200px; min-width: 0; accent-color: var(--mint); }
+.time { font-variant-numeric: tabular-nums; color: var(--mute); font-size: .85rem; min-width: 84px; text-align: right; }
+.note { color: var(--mute); font-size: .85rem; line-height: 1.55; max-width: 70ch; }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Hikari<span>光</span> · pub</h1>
+    <p>50 s · 1920×1080 · musique générée</p>
+  </div>
+  <div class="stage"><canvas id="film" width="1920" height="1080"></canvas></div>
+  <div class="bar">
+    <button id="play" type="button">Pause</button>
+    <button id="sound" class="ghost" type="button">Activer le son</button>
+    <input id="seek" type="range" min="0" max="50" step="0.01" value="0" aria-label="Position dans la vidéo">
+    <span class="time" id="time">0:00 / 0:50</span>
+    <button id="full" class="ghost" type="button">Plein écran</button>
+  </div>
+  <p class="note">Clique sur « Activer le son » pour la musique. Les textes (lien d'invitation, salons, messages) se changent dans le bloc <code>SCRIPT</code> en haut du code.</p>
+</div>
+
+<script>
+// ===== Textes de la pub (à modifier librement) =====
+const SCRIPT = {
+  name: "Hikari", kanji: "光",
+  tagline: "la lumière de ton Discord",
+  hooks: [["MARRE DES", "SERVEURS MORTS ?"], ["DES SALONS", "VIDES ?"], ["DES « SALUT »", "SANS RÉPONSE ?"]],
+  punch: ["ICI,", "ÇA VIT."],
+  features: [
+    ["遊", "Gaming", "Des games en vocal tous les soirs"],
+    ["桜", "Anime & Manga", "Recos, débats et saisons en cours"],
+    ["祭", "Events", "Tournois, soirées ciné, giveaways"],
+    ["声", "Vocaux chill", "On parle, on rit, on refait le monde"],
+    ["創", "Créa", "Fan-arts, edits et montages"],
+    ["和", "Bienveillance", "Une modération présente et à l'écoute"],
+  ],
+  chat: [
+    ["Sora", "#a8f0a0", "qui est chaud pour une game ce soir ?"],
+    ["Yuki", "#ffb547", "moi !! je ramène les onigiri"],
+    ["Kenta", "#8fb8ff", "karaoké en vocal dans 10 min"],
+    ["Mika", "#ff8fb1", "j'ai fini l'anime que vous m'avez conseillé… je pleure"],
+    ["Ren", "#c9a0ff", "bienvenue au nouveau !!"],
+    ["Sora", "#a8f0a0", "tournoi samedi, inscriptions ouvertes"],
+  ],
+  rush: ["ANIME", "GAMING", "MUSIQUE", "EVENTS", "CHILL", "FOUS RIRES", "AMITIÉS", "ET TOI ?"],
+  cta: "REJOINS-NOUS",
+  invite: "Lien d'invitation en description",
+};
+const AVATAR = "data:image/jpeg;base64,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tnX970969E034qJFAB5/b1r5PTXJoujn86mXxfcoMCU/nXBLCqTuP2Z9HeKvii1xA6rcdR614X4s8U3F5M5EhOT61hS+JZ7kYaQ8+9UpHNwdzHOa1hSUC1GxXa6llfLMakX5hz6UvkAc0u3FbFC04Nim0UAP3io3JNLSgZoAruhNMETVb2ijavpQBWCECoZonYcZq/tHpThGp6incDmrmxmfpmqL6Xck967cW0R6gU4WcB/hFFwucMmlXI9auwafKuM5rrDaQjoopht4x0ApBcxobZ1q0sbCrhjUdKbtHpStcCsUY03yzmre0UbV9KOQLlYIRS7TVjaKNoo5B3KxQmk8tvSrW0UbRRyiKwjagxtVnaKNoo5QKTRMaZ5L+laIRT2pfLWjlC5nrC1SCNqtlF9qNq+gotYChJEx6VWa3kzxmtkRr3pwhj9BVXC5kRQup5q9CSKsGFB2ppUDpSuAb80hPpSUUAFFFFABRRRQAZPrRk0UUAGTShiKSigB4lYUvnN6mo6KAH+c3rSGRjTaKAFLE0mTRRQAZNGTRRQAZNGT60UUAGT60ZNFFABk0ZNFFAC7jRuNJRQAu40m40UUALuNLvNNooAdvNNJJoooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==";
+// ====================================================
+
+const W = 1920, H = 1080, DUR = 50;
+const COL = { night: "#0f0f2a", panel: "#1a1a3c", mint: "#a8f0a0", amber: "#ffb547", blush: "#ff8fb1", snow: "#f6f7ff", red: "#f23f43" };
+const DISPLAY = '"Dela Gothic One", "IPAGothic", "Inter", sans-serif';
+const BODY = '"M PLUS Rounded 1c", "Inter", sans-serif';
+const cv = document.getElementById("film");
+const ctx = cv.getContext("2d");
+const avatar = new Image(); avatar.src = AVATAR;
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const elastic = x => x <= 0 ? 0 : x >= 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - .75) * 2 * Math.PI / 3) + 1;
+function rng(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const font = (px, fam = DISPLAY, w = "") => { ctx.font = `${w} ${px}px ${fam}`.trim(); };
+
+// ---------- precomputed particles ----------
+const R = rng(7);
+const stars = Array.from({ length: 140 }, () => ({ x: R() * W, y: R() * H, z: .2 + R() * .8, ph: R() * 6.28 }));
+const swarm = Array.from({ length: 320 }, () => ({ a: R() * 6.28, r: 700 + R() * 900, s: 1 + R() * 3, c: [COL.mint, COL.amber, COL.snow][R() * 3 | 0], d: R() * .6 }));
+const confetti = Array.from({ length: 180 }, () => { const a = R() * 6.28, v = 500 + R() * 1300; return { vx: Math.cos(a) * v, vy: Math.sin(a) * v - 400, r: R() * 6.28, vr: (R() - .5) * 14, c: [COL.mint, COL.amber, COL.blush, COL.snow][R() * 4 | 0], w: 10 + R() * 14 }; });
+const sparks = Array.from({ length: 40 }, () => ({ a: R() * 6.28, r: 260 + R() * 420, sp: (R() - .5) * .6, s: 2 + R() * 4, ph: R() * 6.28 }));
+const grain = document.createElement("canvas"); grain.width = grain.height = 256;
+{ const g = grain.getContext("2d"), d = g.createImageData(256, 256); for (let i = 0; i < d.data.length; i += 4) { const v = R() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); }
+const grainPat = ctx.createPattern(grain, "repeat");
+
+// ---------- shared drawing helpers ----------
+function background(t, tint = COL.night) {
+  ctx.fillStyle = tint; ctx.fillRect(0, 0, W, H);
+  const blob = (x, y, r, c, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, c); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.globalAlpha = a; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.globalAlpha = 1; };
+  blob(W * .25 + Math.sin(t * .3) * 200, H * .3 + Math.cos(t * .4) * 120, 700, COL.mint, .12);
+  blob(W * .78 + Math.cos(t * .25) * 220, H * .75 + Math.sin(t * .35) * 140, 750, COL.amber, .1);
+  for (const s of stars) {
+    const x = ((s.x - t * 40 * s.z) % W + W) % W, y = s.y;
+    ctx.globalAlpha = (.25 + .5 * (.5 + .5 * Math.sin(t * 2 + s.ph))) * s.z;
+    ctx.fillStyle = COL.snow; ctx.fillRect(x, y, 2.4 * s.z, 2.4 * s.z);
+  }
+  ctx.globalAlpha = 1;
+}
+function finish(t) {
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * .95);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.55)");
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.globalAlpha = .045; ctx.globalCompositeOperation = "overlay";
+  const ox = (t * 997) % 256, oy = (t * 613) % 256; ctx.translate(-ox, -oy);
+  ctx.fillStyle = grainPat; ctx.fillRect(0, 0, W + 256, H + 256); ctx.restore();
+}
+function flash(t, at, len = .5, c = COL.snow) { if (t >= at && t < at + len) { ctx.globalAlpha = (1 - P(t, at, at + len)) * .9; ctx.fillStyle = c; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; } }
+// diagonal wipe: covers the screen in the first half, uncovers in the second
+function wipe(t, t0, c, len = .6) {
+  const k = P(t, t0, t0 + len); if (k <= 0 || k >= 1) return;
+  const skew = 400, span = W + skew * 2;
+  const a = k < .5 ? 0 : eio((k - .5) * 2) * span, b = k < .5 ? eio(k * 2) * span : span;
+  ctx.fillStyle = c; ctx.beginPath();
+  ctx.moveTo(a - skew, 0); ctx.lineTo(b, 0); ctx.lineTo(b - skew, H); ctx.lineTo(a - skew * 2, H); ctx.closePath(); ctx.fill();
+}
+function rays(t, n, c, a, rot = .15, cx = W / 2, cy = H / 2) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * rot); ctx.globalAlpha = a; ctx.fillStyle = c;
+  for (let i = 0; i < n; i++) { const a0 = i / n * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 2400, a0, a0 + Math.PI / n); ctx.closePath(); ctx.fill(); }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+function shake(t, at, amp = 16) { const l = t - at; if (l < 0 || l > .5) return [0, 0]; const e = Math.exp(-l * 10) * amp; return [Math.sin(l * 90) * e, Math.cos(l * 77) * e]; }
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function wrapLines(text, maxW) { const words = text.split(" "), out = []; let line = ""; for (const w of words) { const test = line ? line + " " + w : w; if (ctx.measureText(test).width > maxW && line) { out.push(line); line = w; } else line = test; } out.push(line); return out; }
+
+// ---------- scenes ----------
+function sceneIntro(t) { // 0 – 5 : light gathers, 光 bursts
+  background(t);
+  const k = eio(P(t, 0, 3));
+  ctx.globalCompositeOperation = "lighter";
+  for (const s of swarm) {
+    const kk = clamp((k - s.d * .3) / (1 - s.d * .3));
+    if (t > 3.05) continue;
+    const r = s.r * (1 - kk), a = s.a + kk * 2.2;
+    const x = W / 2 + Math.cos(a) * r, y = H / 2 + Math.sin(a) * r * .6;
+    ctx.globalAlpha = .3 + kk * .7; ctx.fillStyle = s.c;
+    ctx.beginPath(); ctx.arc(x, y, s.s, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  if (t < 3.05) { const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 40 + k * 260); g.addColorStop(0, `rgba(255,255,240,${.2 + k * .8})`); g.addColorStop(1, "rgba(255,255,240,0)"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+  if (t >= 3) {
+    const l = t - 3, out = 1 - P(t, 4.6, 5.1);
+    for (let i = 0; i < 3; i++) { const rk = eo(P(l, i * .12, 1.2 + i * .12)); ctx.globalAlpha = (1 - rk) * .8 * out; ctx.strokeStyle = i === 1 ? COL.amber : COL.mint; ctx.lineWidth = 10 - i * 3; ctx.beginPath(); ctx.arc(W / 2, H / 2, rk * 1100, 0, 7); ctx.stroke(); }
+    const s = 1 + (1 - eo(P(l, 0, .8))) * 1.4;
+    ctx.save(); ctx.translate(W / 2, H / 2 + 20); ctx.scale(s, s);
+    ctx.globalAlpha = P(l, 0, .25) * out;
+    font(460); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.shadowColor = COL.mint; ctx.shadowBlur = 80; ctx.fillStyle = COL.snow; ctx.fillText(SCRIPT.kanji, 0, 0);
+    ctx.shadowBlur = 0; ctx.restore(); ctx.globalAlpha = 1;
+  }
+  flash(t, 3, .7);
+}
+
+function sceneTitle(t) { // 5 – 10.3 : HIKARI letters drop
+  background(t);
+  const exitK = eio(P(t, 9.4, 10));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(1 + exitK * .25, 1 + exitK * .25); ctx.translate(-W / 2, -H / 2);
+  ctx.globalAlpha = 1 - exitK;
+  font(250); ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+  const letters = SCRIPT.name.toUpperCase().split("");
+  const widths = letters.map(c => ctx.measureText(c).width), gap = 14;
+  font(230); const kw = ctx.measureText(SCRIPT.kanji).width; font(250);
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (letters.length - 1) + 40 + kw;
+  let x = W / 2 - total / 2; const base = H / 2 + 60;
+  letters.forEach((c, i) => {
+    const lk = P(t, 5 + i * .1, 5.6 + i * .1);
+    if (lk > 0) {
+      const y = base - (1 - back(lk)) * 380, rot = (1 - lk) * (i % 2 ? .25 : -.25);
+      ctx.save(); ctx.translate(x + widths[i] / 2, y); ctx.rotate(rot);
+      const g = ctx.createLinearGradient(0, -200, 0, 0); g.addColorStop(0, COL.snow); g.addColorStop(1, COL.mint);
+      ctx.fillStyle = g; ctx.shadowColor = "rgba(168,240,160,.5)"; ctx.shadowBlur = 30;
+      ctx.fillText(c, -widths[i] / 2, 0); ctx.restore();
+    }
+    x += widths[i] + gap;
+  });
+  const kk = P(t, 5.8, 6.8);
+  if (kk > 0) { const s = elastic(kk); ctx.save(); ctx.translate(x + 40 + kw / 2, base - 85); ctx.scale(s, s); ctx.rotate((1 - s) * .5); font(230); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = COL.amber; ctx.shadowColor = COL.amber; ctx.shadowBlur = 50; ctx.fillText(SCRIPT.kanji, 0, 0); ctx.restore(); }
+  const uk = eo(P(t, 6.2, 7)); ctx.fillStyle = COL.amber; ctx.fillRect(W / 2 - total / 2, base + 40, total * uk, 10);
+  const tk = eo(P(t, 6.5, 7.3)); ctx.globalAlpha = tk * (1 - exitK); font(58, BODY, 800); ctx.textAlign = "center"; ctx.fillStyle = COL.snow;
+  ctx.fillText(SCRIPT.tagline, W / 2, base + 150 + (1 - tk) * 40);
+  const sk = P(t, 7.4, 8); ctx.globalAlpha = sk * .7 * (1 - exitK); font(30, BODY, 500); ctx.fillStyle = COL.mint;
+  ctx.fillText("S E R V E U R   D I S C O R D", W / 2, base + 215);
+  ctx.restore(); ctx.globalAlpha = 1;
+  flash(t, 5, .25, COL.night);
+}
+
+function sceneHooks(t) { // 10.3 – 17.3 : kinetic questions then the punch
+  const slots = [10.5, 12, 13.5];
+  const punchAt = 15;
+  if (t < punchAt) {
+    background(t);
+    const i = slots.findLastIndex(s => t >= s); if (i < 0) return;
+    const l = t - slots[i], end = (slots[i + 1] ?? punchAt) - slots[i];
+    const [sx, sy] = shake(t, slots[i]); ctx.save(); ctx.translate(sx, sy);
+    const lines = SCRIPT.hooks[i];
+    lines.forEach((txt, j) => {
+      const lk = P(l, j * .25, j * .25 + .28); if (lk <= 0) return;
+      const s = 1 + (1 - eo(lk)) * 1.6, out = 1 - P(l, end - .2, end);
+      ctx.save(); ctx.translate(W / 2, H / 2 - 70 + j * 170); ctx.rotate((j ? 1 : -1) * .03); ctx.scale(s, s);
+      ctx.globalAlpha = clamp(lk * 3) * out; font(j ? 150 : 110); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = j ? COL.snow : COL.mint; ctx.fillText(txt, 0, 0); ctx.restore();
+    });
+    ctx.restore(); ctx.globalAlpha = 1;
+    flash(t, slots[i], .15, "rgba(168,240,160,1)");
+    return;
+  }
+  // punch
+  background(t, "#1b1430");
+  rays(t, 16, COL.amber, .09, .3);
+  const l = t - punchAt;
+  for (const c of confetti) {
+    const tt = l * .9; if (tt > 2.4) break;
+    const x = W / 2 + c.vx * tt, y = H / 2 + c.vy * tt + 900 * tt * tt;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(c.r + c.vr * tt); ctx.fillStyle = c.c; ctx.globalAlpha = 1 - P(tt, 1.6, 2.4); ctx.fillRect(-c.w / 2, -c.w / 4, c.w, c.w / 2); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  const [sx, sy] = shake(t, punchAt, 30); ctx.save(); ctx.translate(sx, sy);
+  SCRIPT.punch.forEach((txt, j) => {
+    const lk = P(l, j * .2, j * .2 + .3); if (lk <= 0) return;
+    const s = 1 + (1 - eo(lk)) * 2 + Math.sin(t * 6) * .01;
+    ctx.save(); ctx.translate(W / 2, H / 2 - 110 + j * 230); ctx.scale(s, s);
+    ctx.globalAlpha = clamp(lk * 3); font(j ? 260 : 150); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    if (j) { ctx.lineWidth = 4; ctx.strokeStyle = COL.amber; ctx.globalAlpha *= .35; for (let e = 1; e <= 2; e++) { ctx.save(); ctx.scale(1 + e * .1, 1 + e * .08); ctx.strokeText(txt, 0, 0); ctx.restore(); } ctx.globalAlpha = clamp(lk * 3); }
+    ctx.fillStyle = j ? COL.amber : COL.snow; ctx.shadowColor = COL.amber; ctx.shadowBlur = j ? 60 : 0; ctx.fillText(txt, 0, 0); ctx.restore();
+  });
+  ctx.restore(); ctx.globalAlpha = 1;
+  flash(t, punchAt, .5, COL.amber);
+}
+
+function sceneFeatures(t) { // 17.3 – 27.6
+  background(t);
+  const z = 1 + P(t, 17.3, 27.6) * .05;
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  const hk = eo(P(t, 17.5, 18));
+  ctx.globalAlpha = hk * (1 - P(t, 26.8, 27.2)); ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  font(30, BODY, 800); ctx.fillStyle = COL.mint; ctx.fillText("C H E Z   H I K A R I 光", W / 2, 140 - (1 - hk) * 30);
+  font(92); ctx.fillStyle = COL.snow; ctx.fillText("CE QUI T'ATTEND", W / 2, 240 - (1 - hk) * 30);
+  ctx.globalAlpha = 1;
+  const cw = 500, ch = 290, gx = 40, gy = 40, x0 = (W - (cw * 3 + gx * 2)) / 2, y0 = 300;
+  const active = t > 21.5 ? Math.floor((t - 21.5) / .9) % 6 : -1;
+  SCRIPT.features.forEach(([ic, title, desc], i) => {
+    const ak = P(t, 18 + i * .5, 18.6 + i * .5); if (ak <= 0) return;
+    const ok = eio(P(t, 26.6 + i * .08, 27.2 + i * .08));
+    const col = i % 3, row = i / 3 | 0, x = x0 + col * (cw + gx), y = y0 + row * (ch + gy);
+    const s = .7 + .3 * back(ak);
+    ctx.save(); ctx.translate(x + cw / 2, y + ch / 2 + (1 - eo(ak)) * 140 - ok * 900); ctx.rotate((1 - eo(ak)) * (i % 2 ? .12 : -.12) + ok * (i % 2 ? .3 : -.3)); ctx.scale(s, s);
+    ctx.globalAlpha = clamp(ak * 2) * (1 - ok);
+    const on = i === active;
+    rr(-cw / 2, -ch / 2, cw, ch, 30); ctx.fillStyle = on ? "rgba(168,240,160,.16)" : "rgba(255,255,255,.06)"; ctx.fill();
+    ctx.lineWidth = on ? 4 : 2; ctx.strokeStyle = on ? COL.mint : "rgba(168,240,160,.25)"; ctx.stroke();
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    font(84); ctx.fillStyle = i % 2 ? COL.amber : COL.mint; ctx.fillText(ic, -cw / 2 + 36, -ch / 2 + 112);
+    font(46); ctx.fillStyle = on ? COL.mint : COL.snow; ctx.fillText(title, -cw / 2 + 36, -ch / 2 + 185);
+    font(28, BODY, 500); ctx.fillStyle = "rgba(246,247,255,.75)";
+    wrapLines(desc, cw - 72).forEach((ln, k) => ctx.fillText(ln, -cw / 2 + 36, -ch / 2 + 232 + k * 36));
+    ctx.restore();
+  });
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+
+function sceneChat(t) { // 27.6 – 35
+  background(t);
+  const out = eio(P(t, 34.4, 35));
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  ["UNE COMMU", "QUI RÉPOND."].forEach((txt, j) => {
+    const k = eo(P(t, 28 + j * .3, 28.5 + j * .3)); if (k <= 0) return;
+    ctx.save(); ctx.globalAlpha = k * (1 - out); font(112); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = j ? COL.amber : COL.snow; ctx.fillText(txt, 140 - (1 - k) * 200 - out * 300, 450 + j * 135); ctx.restore();
+  });
+  const mk = eo(P(t, 28.9, 29.5)); ctx.globalAlpha = mk * (1 - out); font(40, BODY, 800); ctx.fillStyle = COL.mint; ctx.fillText("Même à 3 h du mat'.", 144 - out * 300, 690);
+  ctx.globalAlpha = 1 - out;
+  // panel
+  const pk = eo(P(t, 27.6, 28.3));
+  const px = 1040 + (1 - pk) * 900 + out * 900, py = 150, pw = 760, ph = 780;
+  rr(px, py, pw, ph, 28); ctx.fillStyle = COL.panel; ctx.fill(); ctx.strokeStyle = "rgba(168,240,160,.25)"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fillRect(px, py + 84, pw, 2);
+  font(34, BODY, 800); ctx.fillStyle = COL.snow; ctx.textAlign = "left"; ctx.fillText("# général", px + 34, py + 54);
+  font(24, BODY, 500); ctx.fillStyle = COL.mint; ctx.textAlign = "right"; ctx.fillText("● en ligne", px + pw - 34, py + 52);
+  ctx.save(); rr(px, py + 86, pw, ph - 86, [0, 0, 28, 28]); ctx.clip();
+  const times = SCRIPT.chat.map((_, i) => 28.5 + i * 1);
+  const c = times.reduce((a, ti) => a + eo(P(t, ti, ti + .35)), 0);
+  const rowH = 112, bottom = py + ph - 90;
+  SCRIPT.chat.forEach(([who, color, msg], i) => {
+    const k = P(t, times[i], times[i] + .35); if (k <= 0) return;
+    const y = bottom - (c - i - 1) * rowH - rowH;
+    ctx.save(); ctx.globalAlpha = clamp(k * 2) * (1 - out); ctx.translate((1 - eo(k)) * 60, 0);
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px + 66, y + 44, 30, 0, 7); ctx.fill();
+    font(30, BODY, 800); ctx.fillStyle = COL.panel; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(who[0], px + 66, y + 46);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    font(27, BODY, 800); ctx.fillStyle = color; ctx.fillText(who, px + 116, y + 30);
+    const nw = ctx.measureText(who).width; font(20, BODY, 500); ctx.fillStyle = "rgba(246,247,255,.4)"; ctx.fillText("aujourd'hui", px + 128 + nw, y + 30);
+    font(28, BODY, 500); ctx.fillStyle = COL.snow;
+    wrapLines(msg, pw - 160).slice(0, 2).forEach((ln, l2) => ctx.fillText(ln, px + 116, y + 68 + l2 * 36));
+    ctx.restore();
+  });
+  ctx.restore();
+  // typing indicator
+  ctx.globalAlpha = (1 - out) * P(t, 29, 29.3);
+  font(22, BODY, 500); ctx.fillStyle = "rgba(246,247,255,.55)"; ctx.textAlign = "left";
+  for (let d = 0; d < 3; d++) { ctx.beginPath(); ctx.arc(px + 40 + d * 16, py + ph - 34 - Math.max(0, Math.sin(t * 9 - d)) * 6, 5, 0, 7); ctx.fill(); }
+  ctx.fillText("Yuki est en train d'écrire…", px + 92, py + ph - 26);
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+
+function sceneRush(t) { // 35 – 40 : one word per beat
+  const bgs = [COL.mint, COL.night, COL.amber, COL.blush, COL.night, COL.snow, COL.mint, COL.night];
+  const fgs = [COL.night, COL.mint, COL.night, COL.night, COL.amber, COL.night, COL.night, COL.snow];
+  const i = clamp(Math.floor((t - 35.5) / .5), 0, 7), l = t - (35.5 + i * .5);
+  if (t < 35.5) { background(t); const k = P(t, 35, 35.5); ctx.fillStyle = COL.mint; ctx.fillRect(0, H / 2 - 4, W * eio(k), 8); return; }
+  ctx.fillStyle = bgs[i]; ctx.fillRect(0, 0, W, H);
+  rays(t, 12, fgs[i], .07, .5);
+  const txt = SCRIPT.rush[i], s = 1 + (1 - eo(clamp(l / .2))) * .5 + (i === 7 ? l * .04 : 0);
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  font(txt.length > 8 ? 200 : 260);
+  ctx.strokeStyle = fgs[i]; ctx.lineWidth = 3;
+  for (let e = 1; e <= 4; e++) { ctx.globalAlpha = .18 / e * 2; ctx.save(); ctx.translate(0, (e % 2 ? -1 : 1) * e * 70 * eo(clamp(l / .3))); ctx.strokeText(txt, 0, 0); ctx.restore(); }
+  ctx.globalAlpha = 1; ctx.scale(s, s); ctx.rotate((i % 2 ? 1 : -1) * .02); ctx.fillStyle = fgs[i]; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+}
+
+function sceneFinal(t) { // 40 – 50 : the server card
+  background(t);
+  rays(t, 14, COL.mint, .05, .08, W / 2, 400);
+  const cx = W / 2, cy = 390, R0 = 170;
+  const ak = P(t, 40.1, 41.4), s = elastic(ak);
+  // orbiting sparks
+  ctx.globalCompositeOperation = "lighter";
+  for (const sp of sparks) { const a = sp.a + t * sp.sp; ctx.globalAlpha = P(t, 40.6, 41.4) * (.4 + .4 * Math.sin(t * 3 + sp.ph)); ctx.fillStyle = sp.ph > 3 ? COL.amber : COL.mint; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * sp.r * 1.3, cy + Math.sin(a) * sp.r * .55, sp.s, 0, 7); ctx.fill(); }
+  ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+  // rings
+  const rk = eo(P(t, 40.4, 41.2));
+  ctx.save(); ctx.translate(cx, cy);
+  ctx.globalAlpha = rk; ctx.lineWidth = 5; ctx.strokeStyle = COL.mint; ctx.setLineDash([22, 18]); ctx.rotate(t * .4);
+  ctx.beginPath(); ctx.arc(0, 0, R0 + 34 * rk, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.rotate(-t * 1.0); ctx.strokeStyle = COL.amber; ctx.lineWidth = 7;
+  for (let q = 0; q < 3; q++) { ctx.beginPath(); ctx.arc(0, 0, R0 + 66 * rk, q * 2.09, q * 2.09 + 1.1); ctx.stroke(); }
+  ctx.restore(); ctx.globalAlpha = 1;
+  // avatar
+  if (s > 0) {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s);
+    ctx.shadowColor = COL.mint; ctx.shadowBlur = 70; ctx.fillStyle = COL.panel; ctx.beginPath(); ctx.arc(0, 0, R0, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R0 - 8, 0, 7); ctx.clip();
+    if (avatar.complete && avatar.naturalWidth) ctx.drawImage(avatar, -R0, -R0, R0 * 2, R0 * 2);
+    ctx.restore(); ctx.lineWidth = 8; ctx.strokeStyle = COL.snow; ctx.beginPath(); ctx.arc(0, 0, R0 - 4, 0, 7); ctx.stroke();
+    // notification badge, a nod to the server icon
+    const bk = P(t, 41.6, 42.2);
+    if (bk > 0) {
+      const n = Math.floor(2 + eio(P(t, 42.4, 44.4)) * 97), label = t >= 44.4 ? "99+" : String(n);
+      ctx.save(); ctx.translate(R0 * .72, R0 * .72); const bs = elastic(bk) * (1 + Math.max(0, Math.sin((t - 42.4) * 12)) * .06 * (t < 44.6 ? 1 : 0)); ctx.scale(bs, bs);
+      font(50, BODY, 800); const bw = Math.max(84, ctx.measureText(label).width + 44);
+      rr(-bw / 2, -42, bw, 84, 42); ctx.fillStyle = COL.red; ctx.fill(); ctx.lineWidth = 10; ctx.strokeStyle = COL.night; ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(label, 0, 4); ctx.restore();
+    }
+    ctx.restore();
+  }
+  // name
+  const nk = eo(P(t, 41.2, 41.9));
+  ctx.save(); ctx.globalAlpha = nk; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  font(140); const nW = ctx.measureText(SCRIPT.name).width; font(130); const kW = ctx.measureText(SCRIPT.kanji).width;
+  const nx = cx - (nW + kW + 10) / 2, ny = 760 + (1 - nk) * 50;
+  ctx.textAlign = "left"; font(140); ctx.fillStyle = COL.snow; ctx.fillText(SCRIPT.name, nx, ny);
+  font(130); ctx.fillStyle = COL.amber; ctx.shadowColor = COL.amber; ctx.shadowBlur = 30; ctx.fillText(SCRIPT.kanji, nx + nW + 10, ny - 4);
+  ctx.restore();
+  // CTA
+  const ck = P(t, 42, 42.7);
+  if (ck > 0) {
+    const pulse = 1 + Math.max(0, Math.sin((t - 42) * Math.PI * 2)) * .035;
+    ctx.save(); ctx.translate(cx, 880); ctx.scale(back(ck) * pulse, back(ck) * pulse);
+    const bw = 600, bh = 104;
+    rr(-bw / 2, -bh / 2, bw, bh, bh / 2); ctx.fillStyle = COL.mint; ctx.shadowColor = COL.mint; ctx.shadowBlur = 40; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.save(); ctx.clip(); const sx = ((t - 42.5) % 2.2) / 2.2 * (bw + 400) - bw / 2 - 200;
+    const g = ctx.createLinearGradient(sx - 80, 0, sx + 80, 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,.7)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g; ctx.fillRect(-bw / 2, -bh / 2, bw, bh); ctx.restore();
+    font(50); ctx.fillStyle = COL.night; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(SCRIPT.cta, 0, 4);
+    ctx.restore();
+  }
+  const ik = eo(P(t, 42.8, 43.5)); ctx.globalAlpha = ik * .8; font(32, BODY, 800); ctx.fillStyle = COL.snow; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(SCRIPT.invite, cx, 1000); ctx.globalAlpha = 1;
+  flash(t, 40, .6);
+  const fk = P(t, 49, 50); if (fk > 0) { ctx.globalAlpha = fk; ctx.fillStyle = COL.night; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+}
+
+function draw(t) {
+  ctx.save();
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  if (t < 5) sceneIntro(t);
+  else if (t < 10.3) sceneTitle(t);
+  else if (t < 17.3) sceneHooks(t);
+  else if (t < 27.6) sceneFeatures(t);
+  else if (t < 35) sceneChat(t);
+  else if (t < 40) sceneRush(t);
+  else sceneFinal(t);
+  ctx.restore();
+  wipe(t, 9.9, COL.mint);
+  wipe(t, 17.0, COL.blush);
+  wipe(t, 27.3, COL.amber);
+  finish(t);
+}
+
+// ---------- music (synthesized, 120 BPM, one beat = 0.5 s) ----------
+async function renderMusic(rate = 44100) {
+  const ac = new OfflineAudioContext(2, rate * DUR, rate);
+  const master = ac.createGain(); master.gain.value = .55;
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+  master.connect(comp); comp.connect(ac.destination);
+  const noiseBuf = ac.createBuffer(1, rate * 2, rate); { const d = noiseBuf.getChannelData(0); const r = rng(3); for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1; }
+  const noise = (t, dur, type, freq, gain, q = 1) => { const s = ac.createBufferSource(); s.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + .05); };
+  const kick = (t, v = 1) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .14); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .42); o.connect(g); g.connect(master); o.start(t); o.stop(t + .45); };
+  const hat = t => noise(t, .05, "highpass", 8000, .22);
+  const clap = t => { noise(t, .2, "bandpass", 1600, .7, .8); noise(t + .012, .16, "bandpass", 1900, .4, .8); };
+  const tone = (t, f, dur, type, gain, cut, att = .01) => { const o = ac.createOscillator(), fl = ac.createBiquadFilter(), g = ac.createGain(); o.type = type; o.frequency.value = f; fl.type = "lowpass"; fl.frequency.value = cut; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + att); g.gain.setValueAtTime(gain, t + Math.max(att, dur - .08)); g.gain.linearRampToValueAtTime(0, t + dur); o.connect(fl); fl.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .02); };
+  const impact = t => { kick(t, 1.2); tone(t, 48, 1.6, "sine", .6, 200, .005); noise(t, 1.4, "highpass", 3000, .35); };
+  const riser = (t0, t1, peak = .3) => { const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; const f = ac.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(7000, t1); const g = ac.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(peak, t1); g.gain.linearRampToValueAtTime(0, t1 + .02); s.connect(f); f.connect(g); g.connect(master); s.start(t0); s.stop(t1 + .05); };
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const chords = [[53, [65, 69, 72, 76]], [55, [67, 71, 74, 79]], [52, [64, 67, 71, 74]], [57, [69, 72, 76, 79]]]; // F G Em Am
+  const chordAt = t => chords[Math.floor(Math.max(0, t - 3) / 2) % 4];
+  const pad = (t, dur, gain = .035) => { const [, notes] = chordAt(t + .01); for (const m of notes) for (const det of [-6, 6]) { const f = hz(m - 12) * Math.pow(2, det / 1200); tone(t, f, dur, "sawtooth", gain, 1400, .25); } };
+  const bassBar = (t, pattern) => { const [root] = chordAt(t + .01); pattern.forEach((on, k) => on && tone(t + k * .25, hz(root - 12), .22, "sawtooth", .32, 520)); };
+  const lead = (t, notes) => notes.forEach(([dt, m, d]) => tone(t + dt, hz(m), d, "square", .05, 2600));
+
+  // intro
+  tone(0, hz(45), 3, "sine", .25, 300, 1.5); pad(0, 3.0, .025); riser(.5, 3, .25);
+  impact(3);
+  // groove: title section
+  const groove = (a, b, opts = {}) => {
+    for (let t = a; t < b - .001; t += .5) {
+      const beat = Math.round((t - 3) / .5);
+      kick(t, .9); hat(t + .25);
+      if (opts.clap && beat % 2 === 1) clap(t);
+      if (beat % 4 === 0) { pad(t, 2, opts.padGain ?? .03); bassBar(t, [1, 0, 1, 1, 0, 1, 1, 0]); }
+    }
+  };
+  groove(3, 10);
+  riser(9.5, 10.5, .2);
+  // hooks: tense, hits on each phrase
+  for (const s of [10.5, 12, 13.5]) { impact(s); clap(s + .25); for (let t = s + .5; t < s + 1.5; t += .5) kick(t, .6); }
+  riser(13.5, 15, .35);
+  impact(15);
+  groove(15, 34.5, { clap: true });
+  // a little hook melody over the features and chat
+  const motif = [[0, 76, .2], [.25, 79, .2], [.5, 81, .45], [1, 79, .2], [1.25, 76, .2], [1.5, 74, .45]];
+  for (const t of [19, 23, 27, 31]) lead(t, motif);
+  riser(34.5, 35.5, .3);
+  // rush: one hit per word
+  for (let i = 0; i < 8; i++) { const t = 35.5 + i * .5; kick(t, 1); clap(t + .25); hat(t + .125); hat(t + .375); if (i % 2 === 0) bassBar(t, [1, 1, 0, 0]); }
+  riser(39, 40, .35);
+  impact(40);
+  groove(40, 48, { clap: true, padGain: .035 });
+  lead(42, motif); lead(46, motif);
+  pad(48, 2, .03); tone(48, hz(45), 2, "sine", .3, 300, .05);
+
+  return ac.startRendering();
+}
+function wavBase64(buf) {
+  const ch = buf.numberOfChannels, len = buf.length, rate = buf.sampleRate, out = new DataView(new ArrayBuffer(44 + len * ch * 2));
+  const ws = (o, s) => { for (let i = 0; i < s.length; i++) out.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0, "RIFF"); out.setUint32(4, 36 + len * ch * 2, true); ws(8, "WAVE"); ws(12, "fmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, ch, true);
+  out.setUint32(24, rate, true); out.setUint32(28, rate * ch * 2, true); out.setUint16(32, ch * 2, true); out.setUint16(34, 16, true); ws(36, "data"); out.setUint32(40, len * ch * 2, true);
+  const data = [...Array(ch)].map((_, c) => buf.getChannelData(c)); let o = 44;
+  for (let i = 0; i < len; i++) for (let c = 0; c < ch; c++) { out.setInt16(o, clamp(data[c][i], -1, 1) * 32767, true); o += 2; }
+  let bin = ""; const bytes = new Uint8Array(out.buffer); for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode(...bytes.subarray(i, i + 32768));
+  return btoa(bin);
+}
+
+// ---------- player ----------
+const fontsReady = Promise.all([
+  document.fonts.load(`80px "Dela Gothic One"`), document.fonts.load(`800 30px "M PLUS Rounded 1c"`), document.fonts.load(`500 30px "M PLUS Rounded 1c"`),
+  new Promise(r => avatar.complete ? r() : (avatar.onload = avatar.onerror = r)),
+]).catch(() => {});
+window.__film = { draw, fontsReady, renderMusic, wavBase64, DUR };
+
+if (!new URLSearchParams(location.search).has("render")) {
+  const playBtn = document.getElementById("play"), soundBtn = document.getElementById("sound"), seek = document.getElementById("seek"), time = document.getElementById("time"), fullBtn = document.getElementById("full");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let playing = !reduce, pos = reduce ? 44 : 0, last = performance.now();
+  let audioCtx = null, music = null, src = null, soundOn = false;
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const stopAudio = () => { if (src) { try { src.stop(); } catch (e) {} src = null; } };
+  const startAudio = () => { stopAudio(); if (!soundOn || !playing || !music) return; src = audioCtx.createBufferSource(); src.buffer = music; src.connect(audioCtx.destination); src.start(0, pos); };
+  playBtn.textContent = playing ? "Pause" : "Lecture";
+  playBtn.onclick = () => { playing = !playing; playBtn.textContent = playing ? "Pause" : "Lecture"; last = performance.now(); playing ? startAudio() : stopAudio(); };
+  soundBtn.onclick = async () => {
+    soundOn = !soundOn; soundBtn.textContent = soundOn ? "Couper le son" : "Activer le son";
+    if (soundOn && !audioCtx) { audioCtx = new AudioContext(); soundBtn.textContent = "Chargement…"; const off = await renderMusic(audioCtx.sampleRate); music = off; soundBtn.textContent = "Couper le son"; }
+    if (soundOn) { await audioCtx.resume(); startAudio(); } else stopAudio();
+  };
+  seek.oninput = () => { pos = +seek.value; last = performance.now(); startAudio(); };
+  fullBtn.onclick = () => { const el = document.querySelector(".stage"); (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); };
+  fontsReady.then(() => {
+    const loop = now => {
+      if (playing) { pos += (now - last) / 1000; if (pos >= DUR) { pos = 0; startAudio(); } }
+      last = now; draw(pos); seek.value = pos; time.textContent = `${fmt(pos)} / ${fmt(DUR)}`;
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
